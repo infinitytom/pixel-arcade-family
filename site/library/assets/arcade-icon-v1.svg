@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+ <defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#303b25"/><stop offset="1" stop-color="#10150f"/></linearGradient>
+  <linearGradient id="shell" x2=".3" y2="1"><stop stop-color="#e3ffa7"/><stop offset="1" stop-color="#a9d566"/></linearGradient>
+  <linearGradient id="glass" x2="1" y2="1"><stop stop-color="#253522"/><stop offset="1" stop-color="#10170f"/></linearGradient>
+ </defs>
+ <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+ <rect x="17" y="17" width="478" height="478" rx="99" fill="none" stroke="#e1ffac" stroke-opacity=".13" stroke-width="2"/>
+ <path d="M152 104h208a16 16 0 0 1 16 16v164l24 58v58a16 16 0 0 1-16 16H128a16 16 0 0 1-16-16v-58l24-58V120a16 16 0 0 1 16-16Z" fill="#060b05" opacity=".5" transform="translate(0 12)"/>
+ <path d="M152 96h208a16 16 0 0 1 16 16v164l24 58v58a16 16 0 0 1-16 16H128a16 16 0 0 1-16-16v-58l24-58V112a16 16 0 0 1 16-16Z" fill="url(#shell)"/>
+ <rect x="176" y="115" width="160" height="8" rx="4" fill="#66873e"/>
+ <rect x="158" y="141" width="196" height="135" rx="13" fill="#11190e"/>
+ <rect x="168" y="151" width="176" height="115" rx="7" fill="url(#glass)"/>
+ <path d="m234 172 60 36-60 36Z" fill="#d6f99b"/>
+ <path d="M181 165h38" stroke="#f0ffd5" stroke-opacity=".17" stroke-width="6" stroke-linecap="round"/>
+ <path d="m137 291-17 43h272l-17-43Z" fill="#b4dc79"/>
+ <path d="M186 319v-25" stroke="#283c1c" stroke-width="10" stroke-linecap="round"/>
+ <circle cx="186" cy="289" r="17" fill="#f1975b"/>
+ <circle cx="181" cy="283" r="5" fill="#ffd6b6" opacity=".7"/>
+ <ellipse cx="286" cy="314" rx="17" ry="10" fill="#27391c"/>
+ <ellipse cx="334" cy="314" rx="17" ry="10" fill="#27391c"/>
+ <ellipse cx="286" cy="308" rx="17" ry="10" fill="#f6f5d4"/>
+ <ellipse cx="334" cy="308" rx="17" ry="10" fill="#f1975b"/>
+ <path d="M112 346h288" stroke="#7a9d4e" stroke-width="3"/>
+ <rect x="214" y="368" width="84" height="12" rx="6" fill="#3d5727"/>
+ <circle cx="374" cy="376" r="5" fill="#f0ffd8"/>
+</svg>

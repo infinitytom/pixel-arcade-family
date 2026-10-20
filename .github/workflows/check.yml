@@ -1,0 +1,33 @@
+name: Check family deployment
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v
+      - name: Build clean Docker image
+        run: docker compose build
+      - name: Test empty-library container as non-root
+        run: |
+          mkdir -p roms
+          chmod 755 roms
+          docker compose up -d --no-build
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18888/health; then break; fi
+            sleep 2
+          done
+          curl --fail http://127.0.0.1:18888/library/
+          curl --fail --silent http://127.0.0.1:18888/library/catalog.json | python -c 'import json,sys; assert json.load(sys.stdin)["games"] == []'
+          docker compose exec -T arcade id
+          docker compose logs --tail=30
+      - if: always()
+        run: docker compose down

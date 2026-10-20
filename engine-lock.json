@@ -1,0 +1,35 @@
+{
+  "version": "4.2.3",
+  "packages": [
+    {
+      "name": "@emulatorjs/emulatorjs",
+      "version": "4.2.3",
+      "url": "https://registry.npmjs.org/@emulatorjs/emulatorjs/-/emulatorjs-4.2.3.tgz",
+      "integrity": "sha512-7z3qaA4LwyurhuGvdMUDF9xJpEbxC3SNy9+E9tSaOsRo8FCS2QXam/0k/lc9kqHWRFIlLKWahNjPAStyL0rFnw=="
+    },
+    {
+      "name": "@emulatorjs/core-fbneo",
+      "version": "4.2.3",
+      "url": "https://registry.npmjs.org/@emulatorjs/core-fbneo/-/core-fbneo-4.2.3.tgz",
+      "integrity": "sha512-54Yx8Kcq8DH42caTakws3pMUZc6UkBNqtZgg7Q04lNmWWc/W0wPGN0gHxG90xmlOFGHHtxp9QnicBb1NXMjGWg=="
+    },
+    {
+      "name": "@emulatorjs/core-mame2003_plus",
+      "version": "4.2.3",
+      "url": "https://registry.npmjs.org/@emulatorjs/core-mame2003_plus/-/core-mame2003_plus-4.2.3.tgz",
+      "integrity": "sha512-z37RxbT4R6dJe4r+/+GGN0gDW7d3K+DACJPowqJDSYO8TQK9RQBWPl0nsgp1aiLYkRL7yspbJn2tu2inBMWZow=="
+    },
+    {
+      "name": "@emulatorjs/core-fbalpha2012_cps1",
+      "version": "4.2.3",
+      "url": "https://registry.npmjs.org/@emulatorjs/core-fbalpha2012_cps1/-/core-fbalpha2012_cps1-4.2.3.tgz",
+      "integrity": "sha512-GeAEX/mJcWskcMnEZ1OjjefftL2vznmE+Lms19XyRRSwfJ23/wc8p1mt7P82QCR/aB0925gksjJqOX2WBvKV6A=="
+    },
+    {
+      "name": "@emulatorjs/core-fbalpha2012_cps2",
+      "version": "4.2.3",
+      "url": "https://registry.npmjs.org/@emulatorjs/core-fbalpha2012_cps2/-/core-fbalpha2012_cps2-4.2.3.tgz",
+      "integrity": "sha512-RqmLd0J/Gh8dkyjnpGN7YGIRS1fJjtCKqBs8r54Uz35KmHxw4Qs/ghCc836DRXP/IrIYX871jMxVvsOIOdCB/g=="
+    }
+  ]
+}

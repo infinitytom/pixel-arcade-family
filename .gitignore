@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.env
+engine/
+roms/*
+!roms/.gitkeep
+dist/
+test-results/
+node_modules/
+*.tar
+*.tar.gz
+*.7z
+*.zip
+*.webm
+*.mp4
+!docs/promo.mp4

@@ -1,0 +1,23 @@
+services:
+  arcade:
+    image: pixel-arcade-family:1.0.0
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${ARCADE_PORT:-18888}:8080"
+    volumes:
+      - "${ROM_DIR:-./roms}:/roms:ro"
+    environment:
+      DEFAULT_CORE: "${DEFAULT_CORE:-fbneo}"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"

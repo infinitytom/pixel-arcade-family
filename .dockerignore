@@ -1,0 +1,11 @@
+.git
+.github
+.env
+roms
+engine
+dist
+tests
+test-results
+docs
+node_modules
+__pycache__
