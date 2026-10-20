@@ -6,6 +6,8 @@ import subprocess
 root = Path(__file__).resolve().parents[1]
 timeline = json.loads((root / 'dist/recording/timeline.json').read_text())
 cuts = {scene['scene']: scene['seconds'] for scene in timeline['cuts']}
+if 'support' in cuts:
+    raise RuntimeError('Re-record without donation scenes before rendering')
 loading, gameplay = cuts['loading'], cuts['gameplay']
 video_file = root / timeline['file']
 filters = (f'[0:v]split=2[a][b];[a]trim=start=0:end={loading:.3f},setpts=PTS-STARTPTS[v0];'
