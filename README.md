@@ -12,7 +12,7 @@
 
 [![点击查看真实界面宣传视频](docs/promo-poster.png)](https://github.com/infinitytom/pixel-arcade-family/releases/latest)
 
-宣传片含中文旁白与实际界面录制，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
+宣传片采用实际界面录制与文字提示，无配音和赞助码，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
 
 ## 快速部署
 
