@@ -11,6 +11,17 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def apply_offline_patch(destination):
+    # The 4.2.3 update checker has no offline error handler. Use its own bundled
+    # version manifest so a family installation does not contact the public CDN.
+    source = Path(destination) / 'src/emulator.js'
+    original = 'https://cdn.emulatorjs.org/stable/data/version.json'
+    content = source.read_text(encoding='utf-8')
+    if content.count(original) != 1:
+        raise RuntimeError('Unexpected upstream update-check implementation')
+    source.write_text(content.replace(original, '/data/version.json'), encoding='utf-8')
+
+
 def install(destination):
     destination = Path(destination)
     lock = json.loads((ROOT / 'engine-lock.json').read_text())
@@ -37,6 +48,7 @@ def install(destination):
                 target = destination / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(archive.extractfile(member).read())
+    apply_offline_patch(destination)
     print('Engine ready:', destination, flush=True)
 
 

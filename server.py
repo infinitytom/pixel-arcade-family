@@ -1,14 +1,11 @@
 """Small local-network server. No accounts or uploads; mounted files are read only."""
-from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
-import io
 import json
 import mimetypes
 import os
 import re
-import shutil
 import threading
 import time
 

@@ -16,3 +16,5 @@ Emulator binaries are **not checked into this repository**. `scripts/fetch_engin
 The application GPL license does not replace core-specific licenses. ROMs, BIOS files, game artwork and game preview media are not included in the repository or default container. Screenshots and the promotional demonstration show the author's local imported collection; they are not a downloadable game bundle.
 
 For the exact npm archives used by a build, including names, versions, URLs and checksums, consult `engine-lock.json`. Upstream source and license links are provided above; review the relevant upstream component's terms before redistributing modified emulator/core binaries.
+
+Offline source patch: after verified extraction, `scripts/fetch_engine.py` replaces the optional CDN version-check URL in `data/src/emulator.js` with `/data/version.json`, the bundled upstream manifest. This avoids an unhandled network error when the browser is offline. The patch is visible in the fetch script; emulator and core binary code is otherwise unmodified. The patched JavaScript source is served in the container at `/data/src/emulator.js` with the original upstream notices retained.

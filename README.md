@@ -1,5 +1,7 @@
 # 像素放映厅 · 家庭版
 
+[![构建验证](https://github.com/infinitytom/pixel-arcade-family/actions/workflows/check.yml/badge.svg)](https://github.com/infinitytom/pixel-arcade-family/actions/workflows/check.yml)
+
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
 中文游戏库、分类搜索、封面与视频预览、收藏、最近游玩。打开浏览器即可游玩，无需续映账号。适合飞牛 fnOS，也可部署在能运行 Docker 的 Linux 主机上。
@@ -7,6 +9,10 @@
 ![家庭版大厅](docs/library.png)
 
 [飞牛图文部署教程](docs/fnos.md) · [资源与导入说明](docs/resources.md) · [常见问题](docs/faq.md) · [宣传视频](https://github.com/infinitytom/pixel-arcade-family/releases/latest) · [支持作者](#支持作者)
+
+[![点击查看真实界面宣传视频](docs/promo-poster.png)](https://github.com/infinitytom/pixel-arcade-family/releases/latest)
+
+宣传片含中文旁白与实际界面录制，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
 
 ## 快速部署
 
