@@ -1,0 +1,79 @@
+// Self-contained browser regression: no ROMs, engine, NAS, or real controller required.
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const http=require('node:http');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'../site');
+const games=Array.from({length:65},(_,i)=>({id:String(i),title:`游戏 ${i}`,filename:`game${i}.zip`,rom:`/roms/game${i}.zip`,category:i<40?'动作':'对战',core:'fbneo',video:'/preview.mp4',aliases:`game${i}`,publisher:'test'}));
+const server=http.createServer((req,res)=>{
+  const url=new URL(req.url,'http://localhost');
+  if(url.pathname==='/library/catalog.json'){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({games,categories:{动作:40,对战:25}}));return;}
+  if(url.pathname.startsWith('/data/')){res.end('');return;}
+  const rel=url.pathname.endsWith('/')?url.pathname+'index.html':url.pathname;
+  const file=path.join(root,rel);
+  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.statusCode=404;res.end();return;}
+  res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.png')?'image/png':file.endsWith('.jpg')?'image/jpeg':'text/html');res.end(fs.readFileSync(file));
+});
+(async()=>{
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const browser=await chromium.launch({...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{}),headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.addInitScript(()=>{
+      window.pads=[{id:'Test standard pad',index:0,connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}];
+      if(location.pathname==='/play.html')window.pads[0].buttons[9]={pressed:true,value:1};
+      Object.defineProperty(navigator,'getGamepads',{value:()=>window.pads});
+    });
+    const down=async(...buttons)=>{await page.evaluate(bs=>{for(const p of window.pads)if(p) p.buttons.forEach((b,i)=>{b.pressed=bs.includes(i);b.value=b.pressed?1:0;});},buttons);await page.waitForTimeout(70);};
+    const press=async b=>{await down(b);await down();};
+    const focus=async s=>page.locator(s).first().focus();
+    const active=()=>page.evaluate(()=>document.activeElement.id||document.activeElement.className);
+    await page.goto(base+'/library/');await page.bringToFront();await page.waitForSelector('.cover');await down();
+    await press(8);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);await press(1);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),false);
+    await press(15);assert.match(await active(),/cover/);
+    await press(15);assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true);
+    await press(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),true);assert.equal(await active(),'play');
+    await press(3);assert.match(await page.locator('#save').innerText(),/已收藏/);
+    await press(2);assert.equal(await page.locator('#preview').evaluate(n=>n.style.display),'block');
+    await focus('#core');await press(15);assert.equal(await page.locator('#core').inputValue(),'mame2003_plus');
+    await press(13);assert.notEqual(await active(),'core');
+    await press(1);assert.equal(await page.locator('#detail').evaluate(n=>n.open),false);assert.match(await active(),/cover/);
+    await press(5);assert.equal(await page.locator('#pageInfo').innerText(),'2 / 3');
+    await down(5);await page.waitForTimeout(500);assert.equal(await page.locator('#pageInfo').innerText(),'3 / 3');await down();
+    await press(5);assert.equal(await page.locator('#pageInfo').innerText(),'3 / 3');
+    await press(4);assert.equal(await page.locator('#pageInfo').innerText(),'2 / 3');
+    await press(7);assert.match(await active(),/prev|next/);await press(7);assert.equal(await page.locator('[data-view="all"]').evaluate(n=>n===document.activeElement),true);
+    await press(7);assert.equal(await page.locator('#chips button').first().evaluate(n=>n===document.activeElement),true);
+    await focus('#chips button[data-category="对战"]');await press(0);assert.equal(await page.locator('#count').innerText(),'25 款');
+    await focus('#chips button[data-category=""]');await press(0);
+    await press(2);assert.equal(await page.locator('#padKeyboard').evaluate(n=>n.open),true);
+    await page.locator('.pad-keys button').filter({hasText:/^g$/}).focus();await press(0);assert.equal(await page.locator('#search').inputValue(),'g');
+    await page.locator('.pad-key-actions button').filter({hasText:'清空'}).focus();await press(0);assert.equal(await page.locator('#search').inputValue(),'');
+    await press(1);assert.match(await active(),/cover/);
+    // Analog input and dead zone; disconnect/reconnect must not activate held A.
+    await focus('.cover');await page.evaluate(()=>window.pads[0].axes=[.2,0]);await page.waitForTimeout(90);assert.equal(await page.locator('.cover').first().evaluate(n=>n===document.activeElement),true);
+    await page.evaluate(()=>window.pads[0].axes=[.8,0]);await page.waitForTimeout(90);assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true);
+    await page.evaluate(()=>window.pads[0].connected=false);await down();assert.match(await page.locator('#gamepadHint').innerText(),/断开/);
+    await page.evaluate(()=>{window.pads[0].axes=[0,0];window.pads[0].connected=true;window.pads[0].buttons[0]={pressed:true,value:1};});await page.waitForTimeout(100);assert.equal(await page.locator('#detail').evaluate(n=>n.open),false);await down();
+    await focus('.cover');await down(9);await page.waitForURL('**/play.html?**');assert.match(await page.url(),/src=/);
+    await page.evaluate(()=>{window.stateSlot=null;window.EJS_emulator={started:true,paused:false,pause(){this.paused=true},play(){this.paused=false},getBaseFileName:()=> 'game0',storage:{states:{async put(k,v){window.stateSlot=v},async get(){return window.stateSlot}}},gameManager:{getState:()=>[1,2,3],loadState(s){window.loadedState=s},restart(){window.restarted=true}}};});
+    // Holding the return chord upon arrival does not cause an accidental return.
+    await down(8,9);await page.waitForTimeout(1100);assert.match(page.url(),/play.html/);await down();
+    await down(10,11);await page.waitForTimeout(550);await down();assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
+    await page.getByRole('button',{name:'快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.stateSlot),[1,2,3]);
+    await page.getByRole('button',{name:'读取快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.loadedState),[1,2,3]);assert.equal(await page.evaluate(()=>EJS_emulator.paused),false);
+    await down(8,9);await page.waitForURL('**/library/');await page.waitForSelector('.cover');assert.equal(await page.locator('.cover').first().evaluate(n=>n===document.activeElement),true);
+    for(const width of [390,750,1280,1920]){
+      await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`overflow at ${width}`);
+    }
+    for(const name of ['help','support','stick-test']){
+      await page.goto(`${base}/${name}.html`);await down();await press(8);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);await press(1);await press(1);await page.waitForURL('**/library/');await page.waitForSelector('.cover');await down();
+    }
+    fs.mkdirSync(path.resolve(__dirname,'../test-results'),{recursive:true});
+    await page.setViewportSize({width:1600,height:1000});await page.screenshot({path:path.resolve(__dirname,'../test-results/controller-library.png')});
+    assert.deepEqual(errors,[]);console.log('PASS: controller navigation, modal, favorites, preview, core, paging, search, analog, reconnect, launch/return, responsive type.');
+  }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());
