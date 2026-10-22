@@ -87,16 +87,18 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>window.pads=[{id:'Test standard pad',index:0,connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}]);await down();
     await focus('.cover');await down(9);await page.waitForURL('**/play.html?**');assert.match(await page.url(),/src=/);
     await page.evaluate(()=>{window.stateSlot=null;window.EJS_emulator={started:true,paused:false,pause(){this.paused=true},play(){this.paused=false},getBaseFileName:()=> 'game0',storage:{states:{async put(k,v){window.stateSlot=v},async get(){return window.stateSlot}}},gameManager:{getState:()=>[1,2,3],loadState(s){window.loadedState=s},restart(){window.restarted=true}}};});
+    for(const width of [390,750,1280,1920]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>{const g=document.querySelector('#game').getBoundingClientRect(),h=document.querySelector('header').getBoundingClientRect();return g.top>=h.bottom-1&&g.bottom<=innerHeight+1&&h.height<=64&&document.documentElement.scrollWidth<=innerWidth;}),true,`player geometry ${width}`);assert.equal(await page.locator('#padDeviceStatus').isVisible(),false);}
+    await page.setViewportSize({width:1600,height:1000});
     // Holding the return chord upon arrival does not cause an accidental return.
     await down(8,9);await page.waitForTimeout(1100);assert.match(page.url(),/play.html/);await down();
-    await page.locator('#padSettingsButton').click();await page.locator('#padSetting-menu').selectOption('10,11');await page.locator('#padSetting-hold').selectOption('500');await press(1);
+    await page.locator('#padGuideButton').click();await page.locator('#padGuide').getByRole('button',{name:'手柄设置',exact:true}).click();await page.locator('#padSetting-menu').selectOption('10,11');await page.locator('#padSetting-hold').selectOption('500');await press(1);
     await down(10,11);await page.waitForTimeout(550);await down();assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
     assert.match(await page.locator('#padMenuHelp').innerText(),/L3 \+ R3/);
     await page.locator('#padGuide').getByRole('button',{name:'手柄设置',exact:true}).click();await page.locator('#padSetting-menu').selectOption('4,5');await press(1);
     assert.match(await page.locator('#padMenuHelp').innerText(),/LB \+ RB/);assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
     await page.getByRole('button',{name:'快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.stateSlot),[1,2,3]);
     await page.getByRole('button',{name:'读取快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.loadedState),[1,2,3]);assert.equal(await page.evaluate(()=>EJS_emulator.paused),false);
-    await page.locator('#padSettingsButton').click();await page.getByRole('button',{name:'恢复默认设置',exact:true}).click();await press(1);
+    await page.locator('#padGuideButton').click();await page.locator('#padGuide').getByRole('button',{name:'手柄设置',exact:true}).click();await page.getByRole('button',{name:'恢复默认设置',exact:true}).click();await press(1);
     await down(8,9);await page.waitForFunction(()=>document.querySelector('#padGuide').open,null,{timeout:5000});await down();
     await page.getByRole('button',{name:'返回大厅…',exact:true}).focus();await press(0);
     assert.equal(await page.getByRole('heading',{name:'返回大厅？'}).count(),1);

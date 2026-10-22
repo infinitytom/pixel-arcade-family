@@ -4,7 +4,7 @@
   const $ = s => document.querySelector(s);
   const playing = !!$('#game');
   const lobby = !!$('#grid');
-  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad112';document.head.append(sheet);
+  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad113';document.head.append(sheet);
   let previous = new Set(), direction = '', repeatAt = 0, padIndex = null;
   let comboAt = 0, comboArmed = false, neutralRequired = true, returnFocus = null;
   let inputSeen=false, focusSuspended=false, lastDeviceName='';
@@ -23,7 +23,7 @@
   function saveSettings(){try{localStorage.setItem('arcade-controller-settings',JSON.stringify(settings));settingsNote.textContent='已保存在当前浏览器。';}catch{settingsNote.textContent='浏览器不允许保存，设置仅本次页面有效。';}}
   const menuNames={'8,9':'Select + Start','10,11':'L3 + R3','4,5':'LB + RB','6,7':'LT + RT'};
   function menuHelp(){return `${menuNames[settings.menu]} 按住 ${settings.hold/1000} 秒打开游戏菜单`;}
-  function refreshMenuHints(){if(playing){defaultHint='A 启动 · '+menuHelp()+' · 可在手柄设置中更改';hint.textContent=defaultHint;}const line=$('#padMenuHelp');if(line)line.textContent=menuHelp();}
+  function refreshMenuHints(){if(playing){defaultHint='A 启动 · '+menuHelp();hint.textContent=defaultHint;$('#playerMenuHint').textContent=menuHelp()+' · Esc 菜单';}const line=$('#padMenuHelp');if(line)line.textContent=menuHelp();}
   const hint = document.createElement('p');
   hint.id = 'gamepadHint';
   hint.setAttribute('role', 'status');
@@ -33,12 +33,13 @@
     '方向选择链接 · 右摇杆 / LB、RB 滚动阅读 · A 打开 · B 返回大厅 · Select 操作指南';
   hint.textContent = defaultHint;
   const deviceBar=document.createElement('div');deviceBar.className='pad-device-bar';
-  const deviceLabel=document.createElement('label');deviceLabel.textContent='大厅控制器 ';
-  const deviceSelect=document.createElement('select');deviceSelect.id='padDevice';deviceSelect.setAttribute('aria-label','大厅控制器');
+  const deviceLabel=document.createElement('label');deviceLabel.textContent=playing?'菜单控制器 ':'大厅控制器 ';
+  const deviceSelect=document.createElement('select');deviceSelect.id='padDevice';deviceSelect.setAttribute('aria-label',playing?'菜单控制器':'大厅控制器');
   const deviceStatus=document.createElement('span');deviceStatus.id='padDeviceStatus';deviceStatus.setAttribute('role','status');
   deviceLabel.append(deviceSelect);deviceBar.append(deviceLabel,deviceStatus);hint.after(deviceBar);
   function status(text){if(deviceStatus.textContent!==text)deviceStatus.textContent=text;}
   function suspendInput(){
+    if(playing)releaseGameInput();
     focusSuspended=true;inputSeen=false;neutralRequired=true;previous.clear();direction='';comboAt=0;comboArmed=false;
     status((lastDeviceName?lastDeviceName+' · ':'')+'已暂停接收：切回此窗口并点击网页，再操作手柄。');
   }
@@ -62,7 +63,8 @@
   function controls() {
     return [...scope().querySelectorAll('button, a[href], input, select')].filter(visible);
   }
-  function firstGame() { return $('#grid .cover') || $('#search') || document.querySelector('a[href]') || guideButton; }
+  function firstGame() { return playing ? $('#game canvas') || $('#game') : $('#grid .cover') || $('#search') || document.querySelector('a[href]') || guideButton; }
+  function focusGame(){if(!playing)return;document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));const target=firstGame();target.tabIndex=-1;target.focus({preventScroll:true});}
   function move(dir) {
     const all = controls(), active = document.activeElement;
     if (!all.includes(active)) { focus(scope() === document ? firstGame() : all[0]); return; }
@@ -112,7 +114,7 @@
   const settingsButton=document.createElement('button');settingsButton.id='padSettingsButton';settingsButton.textContent='手柄设置';deviceBar.append(settingsButton);
   function openSettings(){
     if(settingsDialog.open)return;beforeSettings=document.activeElement;
-    const em=window.EJS_emulator;resumeAfterSettings=!!(playing && em?.started && !em.paused);if(resumeAfterSettings)em.pause();
+    const em=window.EJS_emulator;resumeAfterSettings=!!(playing && em?.started && !em.paused);if(resumeAfterSettings)em.pause();if(playing)releaseGameInput();
     settingsFields.prepend(deviceLabel);settingsDialog.showModal();focus(settingControls.get('menu'));
   }
   settingsButton.onclick=openSettings;
@@ -122,7 +124,7 @@
     refreshMenuHints();saveSettings();
   };
   const doneButton=document.createElement('button');doneButton.textContent='完成（B）';doneButton.onclick=()=>settingsDialog.close();settingsDialog.append(resetButton,doneButton);
-  settingsDialog.addEventListener('close',()=>{deviceBar.prepend(deviceLabel);if(resumeAfterSettings)window.EJS_emulator?.play();resumeAfterSettings=false;focus(beforeSettings?.isConnected?beforeSettings:firstGame());neutralRequired=true;});
+  settingsDialog.addEventListener('close',()=>{deviceBar.prepend(deviceLabel);if(playing)releaseGameInput();if(resumeAfterSettings)window.EJS_emulator?.play();resumeAfterSettings=false;focus(beforeSettings?.isConnected?beforeSettings:firstGame());neutralRequired=true;});
   let beforeGuide, resumeAfterGuide=false;
   const guideText='<h2>拿起手柄，开始一局</h2><p>① 连接到当前设备，先点击此网页，再按任意键并松开。<br>② 保持此窗口在前台；十字键或左摇杆移动高亮，A 确认，B 返回。<br>③ 选中游戏按 A 看详情，Start 直接开始。</p><dl><dt>X / Y</dt><dd>搜索或预览 / 收藏当前游戏</dd><dt>LB / RB</dt><dd>上一页 / 下一页；阅读页面时滚动</dd><dt>LT / RT</dt><dd>快速切换视图、分类、排序、游戏、分页分区</dd><dt>排序 / 模拟核心</dt><dd>左右切换选项，上下移动到其他控件</dd><dt>搜索</dt><dd>屏幕键盘输入拼音、英文或 ROM 名；B 完成并回到结果</dd><dt>右摇杆</dt><dd>滚动页面或详情文字；预览时左右快退 / 快进</dd><dt>游戏菜单</dt><dd>在「手柄设置」中查看或更改菜单组合键：暂停、快捷存读档、重新开始、返回大厅</dd></dl><p>按键名称按 Xbox / 标准 Gamepad 位置标注，其他手柄字母可能不同。无反应时打开控制器检测；需要可信 HTTPS。游戏内动作与投币按键在模拟器中映射。</p>';
   function guideAction(label, fn) {const b=document.createElement('button');b.textContent=label;b.onclick=fn;guide.append(b);return b;}
@@ -132,8 +134,10 @@
     const em=window.EJS_emulator;
     resumeAfterGuide=!!(playing && em?.started && !em.paused);
     if(resumeAfterGuide)em.pause();
-    const close=guideAction(playing?'继续游戏（B）':'明白了（B）',()=>guide.close());
-    guide.querySelector('dl').append(Object.assign(document.createElement('dt'),{textContent:'当前菜单快捷键'}),Object.assign(document.createElement('dd'),{id:'padMenuHelp',textContent:menuHelp()}));
+    if(playing){releaseGameInput();guide.innerHTML='<h2>游戏菜单</h2><p id="padMenuHelp"></p><p>方向选择 · A 确认 · B 继续游戏</p><p class="player-basics">Select 投币 · Start 开始 · 十字键 / 左摇杆移动<br>动作键随游戏而异，可在下方查看按键。</p>';$('#padMenuHelp').textContent=menuHelp()+'；也可按手柄 Home 键或键盘 Esc。';}
+    const close=guideAction(playing?(em?.started?'继续游戏（B）':'开始游戏（A）'):'明白了（B）',()=>{guide.close();if(playing&&!em?.started)$('.ejs_start_button')?.click();});
+    if(!playing)guide.querySelector('dl').append(Object.assign(document.createElement('dt'),{textContent:'当前菜单快捷键'}),Object.assign(document.createElement('dd'),{id:'padMenuHelp',textContent:menuHelp()}));
+    if(playing)guideAction('全屏 / 退出全屏（F）',togglePlayerFullscreen);
     guideAction('手柄设置',openSettings);
     if(playing){
       guideAction('快捷存档',async()=>{
@@ -157,7 +161,81 @@
     guide.showModal();focus(close);
   }
   guideButton.onclick=openGuide;
-  guide.addEventListener('close',()=>{if(resumeAfterGuide)window.EJS_emulator?.play();resumeAfterGuide=false;focus(beforeGuide?.isConnected?beforeGuide:firstGame());neutralRequired=true;});
+  guide.addEventListener('close',()=>{if(playing)releaseGameInput();if(resumeAfterGuide)window.EJS_emulator?.play();resumeAfterGuide=false;if(playing)focusGame();else focus(beforeGuide?.isConnected?beforeGuide:firstGame());neutralRequired=true;});
+  // Game diagnostics live in settings, never above or over the running canvas.
+  if(playing){
+    settingsDialog.insertBefore(hint,settingsFields);settingsDialog.insertBefore(deviceBar,settingsFields);
+    deviceBar.append(deviceLabel,deviceStatus,activateButton);settingsButton.remove();
+    document.querySelector('header').append(guideButton);guideButton.textContent='游戏菜单';refreshMenuHints();
+    settingsDialog.querySelector('p:last-of-type').textContent='玩家按顺序分配给标准手柄，可在这里更改。每个控制器只能分配给一位玩家。';
+    const players=document.createElement('section');players.id='playerAssignments';players.innerHTML='<h3>游戏玩家与按键</h3><p>正在等待模拟器就绪…</p>';settingsFields.prepend(players);
+    document.addEventListener('keydown',e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(settingsDialog.open)settingsDialog.close();else if(guide.open)guide.close();else openGuide();}else if(e.key.toLowerCase()==='f'&&!settingsDialog.open){e.preventDefault();togglePlayerFullscreen();}},true);
+  }
+  async function togglePlayerFullscreen(){
+    const exiting=document.body.classList.contains('player-immersive')||document.fullscreenElement;
+    if(exiting){document.body.classList.remove('player-immersive');if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});}
+    else{document.body.classList.add('player-immersive');if(navigator.userActivation?.isActive)await document.documentElement.requestFullscreen?.().catch(()=>{});}
+    guide.close();focusGame();window.dispatchEvent(new Event('resize'));
+  }
+  if(playing)document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('player-immersive');});
+  const gameBlockedPads=new Set();
+  function releaseGameInput(){const em=window.EJS_emulator;for(const p of em?.gamepad?.gamepads||[])if(p)gameBlockedPads.add(p.index);if(!em?.started||!em.gameManager?.simulateInput)return;for(let p=0;p<4;p++)for(let b=0;b<30;b++)em.gameManager.simulateInput(p,b,0);}
+  let boundEmulator=null,assignmentKey='',manualPlayers=false;
+  function syncGameControllers(pads){
+    if(!playing)return;const em=window.EJS_emulator;
+    if(!em?.gamepad?.listeners||!em.gamepadSelection)return;
+    for(const p of pads)if(!p.buttons.some(b=>b.pressed||b.value>.5)&&p.axes.slice(0,2).every(a=>Math.abs(a)<=settings.deadzone))gameBlockedPads.delete(p.index);
+    if(boundEmulator!==em){
+      boundEmulator=em;assignmentKey='';
+      // EmulatorJS ships player 2–4 with empty mappings. Give new players the
+      // standard action layout without copying player 1's keyboard bindings.
+      if(em.controls)for(let p=1;p<4;p++)if(!Object.keys(em.controls[p]||{}).length){em.controls[p]={};for(const [b,c]of Object.entries(em.defaultControllers?.[0]||em.controls[0]||{}))if(c.value2!==undefined)em.controls[p][b]={value2:c.value2};}
+      // EmulatorJS events use physical indices, while its device array is dense.
+      // Resolve gaps after unplug/reconnect before handing events to the emulator.
+      const dispatch=em.gamepad.dispatchEvent;
+      em.gamepad.dispatchEvent=function(name,event){
+        const index=this.gamepads.findIndex(p=>p?.index===event?.gamepadIndex);
+        if(index<0)return;
+        if(['buttondown','buttonup','axischanged'].includes(name)&&(guide.open||settingsDialog.open||gameBlockedPads.has(event.gamepadIndex)||focusSuspended))return;
+        if(name==='axischanged'&&['LEFT_STICK_X','LEFT_STICK_Y'].includes(event.axis)&&['arcade','mame'].includes(em.getControlScheme?.())&&em.started){
+          const p=em.gamepadSelection.indexOf(this.gamepads[index].id+'_'+this.gamepads[index].index);
+          if(p>=0){const [negative,positive]=event.axis==='LEFT_STICK_X'?[6,7]:[4,5];em.gameManager.simulateInput(p,negative,event.value < -settings.deadzone?1:0);em.gameManager.simulateInput(p,positive,event.value > settings.deadzone?1:0);}return;
+        }
+        return dispatch.call(this,name,{...event,gamepadIndex:index});
+      };
+    }
+    const key=JSON.stringify(pads.map(p=>[p.id,p.index,p.mapping]));
+    const standard=pads.filter(p=>p.mapping==='standard'),available=standard.length?standard:pads;
+    const id=p=>p.id+'_'+p.index;
+    if(key!==assignmentKey){
+      releaseGameInput();assignmentKey=key;
+      if(!manualPlayers)em.gamepadSelection.splice(0,4,...Array.from({length:4},(_,i)=>available[i]?id(available[i]):''));
+      else for(let i=0;i<4;i++)if(!pads.some(p=>id(p)===em.gamepadSelection[i]))em.gamepadSelection[i]='';
+      em.updateGamepadLabels?.();
+      const fields=$('#playerAssignments');fields.replaceChildren(Object.assign(document.createElement('h3'),{textContent:'游戏玩家与按键'}));
+      for(let i=0;i<4;i++){
+        const label=document.createElement('label');label.textContent='玩家 '+(i+1);const select=document.createElement('select');select.setAttribute('aria-label','玩家 '+(i+1));select.add(new Option('未分配',''));
+        for(const p of pads)select.add(new Option(`${p.index+1} · ${p.id}`,id(p)));select.value=em.gamepadSelection[i]||'';
+        select.onchange=()=>{releaseGameInput();manualPlayers=true;for(let j=0;j<4;j++)if(j!==i&&select.value&&em.gamepadSelection[j]===select.value)em.gamepadSelection[j]='';em.gamepadSelection[i]=select.value;em.updateGamepadLabels?.();fields.querySelectorAll('select').forEach((n,j)=>n.value=em.gamepadSelection[j]||'');};label.append(select);fields.append(label);
+      }
+      const names={BUTTON_1:'A',BUTTON_2:'B',BUTTON_3:'X',BUTTON_4:'Y',SELECT:'Select',START:'Start',LEFT_TOP_SHOULDER:'LB',RIGHT_TOP_SHOULDER:'RB',DPAD_UP:'↑',DPAD_DOWN:'↓',DPAD_LEFT:'←',DPAD_RIGHT:'→'};
+      const editor=document.createElement('section');fields.append(editor);
+      const playerLabel=document.createElement('label');playerLabel.textContent='按键设置';const playerSelect=document.createElement('select');playerSelect.setAttribute('aria-label','按键设置玩家');for(let i=0;i<4;i++)playerSelect.add(new Option('玩家 '+(i+1),String(i)));playerLabel.append(playerSelect);editor.append(playerLabel);
+      const mappings=document.createElement('div');editor.append(mappings);
+      function renderMappings(){
+        mappings.replaceChildren();const player=Number(playerSelect.value);
+        for(const [button,title] of [[2,'投币'],[3,'开始'],[0,'动作 B'],[1,'动作 Y'],[8,'动作 A'],[9,'动作 X'],[10,'动作 L'],[11,'动作 R']]){
+          if(!em.controls?.[player]?.[button])continue;
+          const label=document.createElement('label');label.textContent=title;const select=document.createElement('select');select.setAttribute('aria-label',title+'手柄按键');
+          select.add(new Option('未绑定',''));for(const [value,name]of Object.entries(names))select.add(new Option(name,value));
+          const current=em.controls[player][button].value2||'';if(current&&!Object.hasOwn(names,current))select.add(new Option(current,current));select.value=current;
+          select.onchange=()=>{releaseGameInput();em.controls[player][button].value2=select.value;em.checkGamepadInputs?.();em.saveSettings?.();};label.append(select);mappings.append(label);
+        }
+      }
+      playerSelect.onchange=renderMappings;renderMappings();
+      const help=document.createElement('p');help.className='player-mapping';help.textContent='方向：十字键 / 左摇杆。动作名称按模拟器布局显示，实际招式由游戏决定。左右切换按键，上下选择下一项。';fields.append(help);
+    }
+  }
   document.addEventListener('focusin',e=>{
     if(!lobby || guide.open)return;
     const n=e.target;
@@ -196,6 +274,7 @@
     if (playing) {
       // Leave running-game input to EmulatorJS. Only activate its initial start button.
       if (button === 0) $('.ejs_start_button')?.click();
+      if (button === 16) openGuide();
       return;
     }
     const modal=scope(), active=document.activeElement;
@@ -229,6 +308,7 @@
     let pads;
     try { pads=Array.from(navigator.getGamepads?.() || []).filter(p=>p && p.connected); }
     catch {hint.textContent='浏览器禁止读取手柄，请通过可信 HTTPS 打开并检查权限。';return;}
+    syncGameControllers(pads);
     const listKey=JSON.stringify(pads.map(p=>[p.id,p.index,p.mapping]));
     if(listKey!==deviceListKey){
       deviceListKey=listKey;deviceSelect.replaceChildren(new Option('自动（优先标准手柄）',''));
@@ -255,7 +335,7 @@
     const oldState=samples.get(deviceKey(pad)),state=states.get(pad.index);
     const changed=!!oldState && (state.buttons.some((v,i)=>v!==oldState.buttons[i]) || state.rawAxes.some((v,i)=>Math.abs(v-oldState.rawAxes[i])>.05));
     samples.clear();for(const p of pads)samples.set(deviceKey(p),states.get(p.index));
-    if(pad.index!==padIndex){padIndex=pad.index;inputSeen=false;previous.clear();direction='';neutralRequired=true;comboArmed=false;hint.textContent='手柄已连接 · '+defaultHint;try{if(lobby && !sessionStorage.getItem('arcade-pad-intro')){sessionStorage.setItem('arcade-pad-intro','1');openGuide();}}catch{}}
+    if(pad.index!==padIndex){const inGame=playing&&padIndex!==null&&!guide.open&&!settingsDialog.open;padIndex=pad.index;inputSeen=false;previous.clear();direction='';if(!inGame){neutralRequired=true;comboArmed=false;}hint.textContent='手柄已连接 · '+defaultHint;try{if(lobby && !sessionStorage.getItem('arcade-pad-intro')){sessionStorage.setItem('arcade-pad-intro','1');openGuide();}}catch{}}
     const down=new Set(pad.buttons.flatMap((b,i)=>(b.pressed || b.value>.5)?[i]:[]));
     let dir=down.has(12)?'up':down.has(13)?'down':down.has(14)?'left':down.has(15)?'right':'';
     const [x=0,y=0]=pad.axes;
@@ -273,7 +353,7 @@
       else comboAt=0;
     } else if(dir && (dir!==direction || now>=repeatAt)) {move(dir);repeatAt=now+(dir===direction?settings.repeat:380);}
     const [,,rx=0,ry=0]=pad.axes;
-    if(Math.abs(ry)>.35){const target=$('#description');if(settingsDialog.open)settingsDialog.scrollTop+=ry*12;else if($('#detail[open]') && target)target.scrollTop+=ry*12;else if(guide.open)guide.scrollTop+=ry*12;else window.scrollBy(0,ry*12);}
+    if(Math.abs(ry)>.35){const target=$('#description');if(settingsDialog.open)settingsDialog.scrollTop+=ry*12;else if($('#detail[open]') && target)target.scrollTop+=ry*12;else if(guide.open)guide.scrollTop+=ry*12;else if(!playing)window.scrollBy(0,ry*12);}
     if(lobby && $('#detail').open && Math.abs(rx)>.55 && now>=repeatAt){const v=$('#preview');if(Number.isFinite(v.duration))v.currentTime=Math.max(0,Math.min(v.duration,v.currentTime+Math.sign(rx)*5));repeatAt=now+300;}
     direction=dir;
     for(const b of down)if(!previous.has(b))act(b);
