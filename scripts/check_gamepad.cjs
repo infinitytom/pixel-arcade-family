@@ -21,6 +21,7 @@ const server=http.createServer((req,res)=>{
   const browser=await chromium.launch({...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{}),headless:true});
   try{
     const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];
+    page.setDefaultTimeout(10000);
     page.on('pageerror',e=>errors.push(e.message));
     await page.addInitScript(()=>{
       window.pads=[{id:'Test standard pad',index:0,connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}];
@@ -58,22 +59,53 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>window.pads[0].axes=[.8,0]);await page.waitForTimeout(90);assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true);
     await page.evaluate(()=>window.pads[0].connected=false);await down();assert.match(await page.locator('#gamepadHint').innerText(),/断开/);
     await page.evaluate(()=>{window.pads[0].axes=[0,0];window.pads[0].connected=true;window.pads[0].buttons[0]={pressed:true,value:1};});await page.waitForTimeout(100);assert.equal(await page.locator('#detail').evaluate(n=>n.open),false);await down();
+    // Actual reported setup: a non-standard Leonardo dial stays off-centre while
+    // the UU virtual Xbox pad sits at index 1. The dial must never steal focus.
+    await page.evaluate(()=>{
+      const buttons=()=>Array.from({length:17},()=>({pressed:false,value:0}));
+      window.pads=[{id:'Arduino Leonardo',index:0,connected:true,mapping:'',axes:[.6929134,-.6456693,0],buttons:buttons()},
+        {id:'UU Xbox 360 Controller',index:1,connected:true,mapping:'standard',axes:[0,0,0,0],buttons:buttons()}];
+    });
+    await down();await focus('.cover');await press(15);
+    assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true,'UU pad must work beside an off-centre Leonardo');
+    assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox.*已就绪/);
+    await page.waitForTimeout(450);await press(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),true);await press(1);
+    await page.locator('#padDevice').selectOption(JSON.stringify(['Arduino Leonardo',0]));await page.waitForTimeout(90);assert.match(await page.locator('#padDeviceStatus').innerText(),/Arduino.*松开/);
+    await page.locator('#padDevice').selectOption('');await down();assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox.*已就绪/);
+    // Another standard pad with a held axis must not bounce ownership every frame.
+    await page.evaluate(()=>window.pads.push({id:'Second Xbox',index:2,connected:true,mapping:'standard',axes:[1,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}));
+    await down();await page.waitForTimeout(120);assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox/);
+    await page.evaluate(()=>window.pads=[{id:'Test standard pad',index:0,connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}]);await down();
     await focus('.cover');await down(9);await page.waitForURL('**/play.html?**');assert.match(await page.url(),/src=/);
     await page.evaluate(()=>{window.stateSlot=null;window.EJS_emulator={started:true,paused:false,pause(){this.paused=true},play(){this.paused=false},getBaseFileName:()=> 'game0',storage:{states:{async put(k,v){window.stateSlot=v},async get(){return window.stateSlot}}},gameManager:{getState:()=>[1,2,3],loadState(s){window.loadedState=s},restart(){window.restarted=true}}};});
     // Holding the return chord upon arrival does not cause an accidental return.
     await down(8,9);await page.waitForTimeout(1100);assert.match(page.url(),/play.html/);await down();
+    await page.locator('#padSettingsButton').click();await page.locator('#padSetting-menu').selectOption('10,11');await page.locator('#padSetting-hold').selectOption('500');await press(1);
     await down(10,11);await page.waitForTimeout(550);await down();assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
     await page.getByRole('button',{name:'快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.stateSlot),[1,2,3]);
     await page.getByRole('button',{name:'读取快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.loadedState),[1,2,3]);assert.equal(await page.evaluate(()=>EJS_emulator.paused),false);
-    await down(8,9);await page.waitForURL('**/library/');await page.waitForSelector('.cover');assert.equal(await page.locator('.cover').first().evaluate(n=>n===document.activeElement),true);
+    await page.locator('#padSettingsButton').click();await page.getByRole('button',{name:'恢复默认设置',exact:true}).click();await press(1);
+    await down(8,9);await page.waitForFunction(()=>document.querySelector('#padGuide').open,null,{timeout:5000});await down();
+    await page.getByRole('button',{name:'返回大厅…',exact:true}).focus();await press(0);
+    assert.equal(await page.getByRole('heading',{name:'返回大厅？'}).count(),1);
+    await page.getByRole('button',{name:'确认返回大厅',exact:true}).focus();await down(0);
+    await page.waitForURL('**/library/');await page.waitForSelector('.cover');await down();assert.equal(await page.locator('.cover').first().evaluate(n=>n===document.activeElement),true);
     for(const width of [390,750,1280,1920]){
       await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`overflow at ${width}`);
     }
     for(const name of ['help','support','stick-test']){
       await page.goto(`${base}/${name}.html`);await down();await press(8);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);await press(1);await press(1);await page.waitForURL('**/library/');await page.waitForSelector('.cover');await down();
     }
+    await page.locator('#padSettingsButton').click();await down();await press(15);assert.equal(await page.locator('#padSetting-menu').inputValue(),'10,11');
+    await page.locator('#padSetting-hold').selectOption('500');await page.locator('#padSetting-deadzone').selectOption('0.75');await page.locator('#padSetting-repeat').selectOption('220');await press(1);
+    await page.reload();await page.waitForSelector('.cover');await down();await page.locator('#padSettingsButton').click();
+    assert.equal(await page.locator('#padSetting-menu').inputValue(),'10,11');assert.equal(await page.locator('#padSetting-hold').inputValue(),'500');assert.equal(await page.locator('#padSetting-deadzone').inputValue(),'0.75');assert.equal(await page.locator('#padSetting-repeat').inputValue(),'220');
+    await page.getByRole('button',{name:'恢复默认设置',exact:true}).click();assert.equal(await page.locator('#padSetting-menu').inputValue(),'8,9');await press(1);
     fs.mkdirSync(path.resolve(__dirname,'../test-results'),{recursive:true});
     await page.setViewportSize({width:1600,height:1000});await page.screenshot({path:path.resolve(__dirname,'../test-results/controller-library.png')});
+    await page.locator('#padSettingsButton').click();
+    for(const width of [390,750,1280,1920]){await page.setViewportSize({width,height:900});assert.equal(await page.locator('#padSettings').evaluate(n=>n.scrollWidth>n.clientWidth+1),false,`settings overflow at ${width}`);}
+    await page.setViewportSize({width:1280,height:900});await page.screenshot({path:path.resolve(__dirname,'../test-results/controller-settings.png')});
     assert.deepEqual(errors,[]);console.log('PASS: controller navigation, modal, favorites, preview, core, paging, search, analog, reconnect, launch/return, responsive type.');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

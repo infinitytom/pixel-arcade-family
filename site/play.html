@@ -2,7 +2,7 @@
 const p=new URLSearchParams(location.search);const cores=['fbneo','mame2003_plus','fbalpha2012_cps1','fbalpha2012_cps2'];const src=p.get('src')||'';const bios=p.get('bios')||'';
 if(!cores.includes(p.get('core'))||!(src.startsWith('/roms/')||src.startsWith('blob:'+location.origin+'/'))||(bios&&!(bios.startsWith('/roms/')||bios.startsWith('blob:'+location.origin+'/')))){document.getElementById('game').textContent='游戏参数无效，请返回游戏库选择。';}else{
 document.getElementById('title').textContent=p.get('name');window.EJS_player='#game';window.EJS_core=p.get('core');window.EJS_gameUrl=src;window.EJS_gameName=p.get('name');window.EJS_biosUrl=bios;window.EJS_pathtodata='/data/';window.EJS_language='zh-CN';window.EJS_DEBUG_XX=true;window.EJS_threads=false;window.EJS_defaultOptions={webgl2Enabled:p.get('gl')==='2'?'enabled':'disabled',fps:'hide'};window.EJS_startOnLoaded=false;window.EJS_color='#558bdf';const s=document.createElement('script');s.src='/data/loader.js';document.body.append(s);}
-</script><script src="/library/gamepad.js?v=gamepad1"></script></html>
+</script><script src="/library/gamepad.js?v=gamepad111"></script></html>
 
 
 

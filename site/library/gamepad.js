@@ -4,17 +4,40 @@
   const $ = s => document.querySelector(s);
   const playing = !!$('#game');
   const lobby = !!$('#grid');
-  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad1';document.head.append(sheet);
+  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad111';document.head.append(sheet);
   let previous = new Set(), direction = '', repeatAt = 0, padIndex = null;
-  let comboAt = 0, comboArmed = false, neutralRequired = true, returnFocus = null, menuAt=0, menuArmed=true;
+  let comboAt = 0, comboArmed = false, neutralRequired = true, returnFocus = null;
+  const samples=new Map();
+  let chosenDevice='', deviceListKey='';
+  const defaults={menu:'8,9',hold:1000,deadzone:.55,repeat:140,device:''};
+  let settings={...defaults};
+  try{const s=JSON.parse(localStorage.getItem('arcade-controller-settings')||'null');if(s){
+    if(['8,9','10,11','4,5','6,7'].includes(s.menu))settings.menu=s.menu;
+    if([500,1000,1500].includes(s.hold))settings.hold=s.hold;
+    if([.35,.55,.75].includes(s.deadzone))settings.deadzone=s.deadzone;
+    if([100,140,220].includes(s.repeat))settings.repeat=s.repeat;
+    if(typeof s.device==='string')settings.device=s.device;
+  }}catch{}
+  chosenDevice=settings.device;
+  function saveSettings(){try{localStorage.setItem('arcade-controller-settings',JSON.stringify(settings));settingsNote.textContent='已保存在当前浏览器。';}catch{settingsNote.textContent='浏览器不允许保存，设置仅本次页面有效。';}}
+  const menuNames={'8,9':'Select + Start','10,11':'L3 + R3','4,5':'LB + RB','6,7':'LT + RT'};
+  function menuHelp(){return `${menuNames[settings.menu]} 按住 ${settings.hold/1000} 秒打开游戏菜单`;}
   const hint = document.createElement('p');
   hint.id = 'gamepadHint';
   hint.setAttribute('role', 'status');
   (playing ? document.querySelector('header') : $('.collection') || document.body).prepend(hint);
-  const defaultHint = playing ? 'A 启动 · L3 + R3 按住半秒打开游戏菜单 · Select + Start 按住 1 秒返回大厅' : lobby ?
+  let defaultHint = playing ? 'A 启动 · '+menuHelp()+' · 可在手柄设置中更改' : lobby ?
     '方向移动 · A 确认 · B 返回 · X 搜索/预览 · Y 收藏 · LB/RB 翻页 · LT/RT 切换分区 · Start 开始 · Select 操作指南' :
     '方向选择链接 · 右摇杆 / LB、RB 滚动阅读 · A 打开 · B 返回大厅 · Select 操作指南';
   hint.textContent = defaultHint;
+  const deviceBar=document.createElement('div');deviceBar.className='pad-device-bar';
+  const deviceLabel=document.createElement('label');deviceLabel.textContent='大厅控制器 ';
+  const deviceSelect=document.createElement('select');deviceSelect.id='padDevice';deviceSelect.setAttribute('aria-label','大厅控制器');
+  const deviceStatus=document.createElement('span');deviceStatus.id='padDeviceStatus';deviceStatus.setAttribute('role','status');
+  deviceLabel.append(deviceSelect);deviceBar.append(deviceLabel,deviceStatus);hint.after(deviceBar);
+  function status(text){if(deviceStatus.textContent!==text)deviceStatus.textContent=text;}
+  const deviceKey=p=>JSON.stringify([p.id,p.index]);
+  deviceSelect.addEventListener('change',()=>{chosenDevice=deviceSelect.value;settings.device=chosenDevice;saveSettings();padIndex=null;neutralRequired=true;previous.clear();direction='';});
 
   function visible(n) { return n && !n.disabled && !n.hidden && n.getClientRects().length > 0; }
   function focus(n) {
@@ -23,7 +46,7 @@
     n.classList.add('pad-focus'); n.focus({preventScroll:true});
     n.scrollIntoView({block:'nearest', inline:'nearest'});
   }
-  function scope() { return $('#padGuide[open]') || $('#padKeyboard[open]') || $('#detail[open]') || document; }
+  function scope() { return $('#padSettings[open]') || $('#padGuide[open]') || $('#padKeyboard[open]') || $('#detail[open]') || document; }
   function controls() {
     return [...scope().querySelectorAll('button, a[href], input, select')].filter(visible);
   }
@@ -56,8 +79,40 @@
   const guide=document.createElement('dialog');guide.id='padGuide';
   const guideButton=document.createElement('button');guideButton.id='padGuideButton';guideButton.textContent='手柄操作指南';
   hint.after(guideButton);document.body.append(guide);
+  const settingsDialog=document.createElement('dialog');settingsDialog.id='padSettings';
+  settingsDialog.innerHTML='<h2>手柄设置</h2><p>方向键移动；选中选项后左右切换，上下离开。设置自动保存到当前浏览器。</p><div id="padSettingsFields"></div><p id="padSettingsNote" role="status"></p><p>这些设置控制大厅与自定义游戏菜单。游戏内玩家分配及动作按键仍在模拟器控制设置中配置；系统文件选择窗口需要系统输入。</p>';
+  document.body.append(settingsDialog);
+  const settingsNote=$('#padSettingsNote'),settingsFields=$('#padSettingsFields');
+  const settingControls=new Map();
+  for(const [key,label,options] of [
+    ['menu','游戏菜单组合键',[['8,9','Select + Start'],['10,11','L3 + R3（摇杆按下）'],['4,5','LB + RB'],['6,7','LT + RT']]],
+    ['hold','菜单长按时间',[[500,'0.5 秒'],[1000,'1 秒'],[1500,'1.5 秒']]],
+    ['deadzone','左摇杆死区',[[.35,'小（更灵敏）'],[.55,'中（默认）'],[.75,'大（忽略更多漂移）']]],
+    ['repeat','方向长按速度',[[220,'慢'],[140,'中（默认）'],[100,'快']]]
+  ]){
+    const labelNode=document.createElement('label');labelNode.textContent=label;
+    const select=document.createElement('select');select.id='padSetting-'+key;select.setAttribute('aria-label',label);
+    for(const [value,name] of options)select.add(new Option(name,String(value)));
+    select.value=String(settings[key]);select.onchange=()=>{settings[key]=key==='menu'?select.value:Number(select.value);saveSettings();if(playing){defaultHint='A 启动 · '+menuHelp()+' · 可在手柄设置中更改';hint.textContent=defaultHint;}};
+    labelNode.append(select);settingsFields.append(labelNode);settingControls.set(key,select);
+  }
+  let beforeSettings,resumeAfterSettings=false;
+  const settingsButton=document.createElement('button');settingsButton.id='padSettingsButton';settingsButton.textContent='手柄设置';deviceBar.append(settingsButton);
+  function openSettings(){
+    if(settingsDialog.open)return;beforeSettings=document.activeElement;
+    const em=window.EJS_emulator;resumeAfterSettings=!!(playing && em?.started && !em.paused);if(resumeAfterSettings)em.pause();
+    settingsFields.prepend(deviceLabel);settingsDialog.showModal();focus(settingControls.get('menu'));
+  }
+  settingsButton.onclick=openSettings;
+  const resetButton=document.createElement('button');resetButton.textContent='恢复默认设置';resetButton.onclick=()=>{
+    settings={...defaults};chosenDevice='';deviceSelect.value='';
+    for(const [key,select] of settingControls)select.value=String(settings[key]);
+    if(playing){defaultHint='A 启动 · '+menuHelp()+' · 可在手柄设置中更改';hint.textContent=defaultHint;}saveSettings();
+  };
+  const doneButton=document.createElement('button');doneButton.textContent='完成（B）';doneButton.onclick=()=>settingsDialog.close();settingsDialog.append(resetButton,doneButton);
+  settingsDialog.addEventListener('close',()=>{deviceBar.prepend(deviceLabel);if(resumeAfterSettings)window.EJS_emulator?.play();resumeAfterSettings=false;focus(beforeSettings?.isConnected?beforeSettings:firstGame());neutralRequired=true;});
   let beforeGuide, resumeAfterGuide=false;
-  const guideText='<h2>拿起手柄，开始一局</h2><p>① 连接到当前设备，按任意键并松开。<br>② 十字键或左摇杆移动高亮，A 确认，B 返回。<br>③ 选中游戏按 A 看详情，Start 直接开始。</p><dl><dt>X / Y</dt><dd>搜索或预览 / 收藏当前游戏</dd><dt>LB / RB</dt><dd>上一页 / 下一页；阅读页面时滚动</dd><dt>LT / RT</dt><dd>快速切换视图、分类、排序、游戏、分页分区</dd><dt>排序 / 模拟核心</dt><dd>左右切换选项，上下移动到其他控件</dd><dt>搜索</dt><dd>屏幕键盘输入拼音、英文或 ROM 名；B 完成并回到结果</dd><dt>右摇杆</dt><dd>滚动页面或详情文字；预览时左右快退 / 快进</dd><dt>游戏菜单</dt><dd>同时按住 L3 + R3 半秒（左右摇杆按下）：暂停、快捷存读档、重新开始、返回大厅</dd></dl><p>按键名称按 Xbox / 标准 Gamepad 位置标注，其他手柄字母可能不同。无反应时打开控制器检测；需要可信 HTTPS。游戏内动作与投币按键在模拟器中映射。</p>';
+  const guideText='<h2>拿起手柄，开始一局</h2><p>① 连接到当前设备，按任意键并松开。<br>② 十字键或左摇杆移动高亮，A 确认，B 返回。<br>③ 选中游戏按 A 看详情，Start 直接开始。</p><dl><dt>X / Y</dt><dd>搜索或预览 / 收藏当前游戏</dd><dt>LB / RB</dt><dd>上一页 / 下一页；阅读页面时滚动</dd><dt>LT / RT</dt><dd>快速切换视图、分类、排序、游戏、分页分区</dd><dt>排序 / 模拟核心</dt><dd>左右切换选项，上下移动到其他控件</dd><dt>搜索</dt><dd>屏幕键盘输入拼音、英文或 ROM 名；B 完成并回到结果</dd><dt>右摇杆</dt><dd>滚动页面或详情文字；预览时左右快退 / 快进</dd><dt>游戏菜单</dt><dd>在「手柄设置」中查看或更改菜单组合键：暂停、快捷存读档、重新开始、返回大厅</dd></dl><p>按键名称按 Xbox / 标准 Gamepad 位置标注，其他手柄字母可能不同。无反应时打开控制器检测；需要可信 HTTPS。游戏内动作与投币按键在模拟器中映射。</p>';
   function guideAction(label, fn) {const b=document.createElement('button');b.textContent=label;b.onclick=fn;guide.append(b);return b;}
   function openGuide() {
     if(guide.open)return;
@@ -66,6 +121,8 @@
     resumeAfterGuide=!!(playing && em?.started && !em.paused);
     if(resumeAfterGuide)em.pause();
     const close=guideAction(playing?'继续游戏（B）':'明白了（B）',()=>guide.close());
+    guide.querySelector('dl').append(Object.assign(document.createElement('dt'),{textContent:'当前菜单快捷键'}),Object.assign(document.createElement('dd'),{textContent:menuHelp()}));
+    guideAction('手柄设置',openSettings);
     if(playing){
       guideAction('快捷存档',async()=>{
         try{if(!em?.started)throw Error('请先启动游戏');await em.storage.states.put(em.getBaseFileName()+'.controller.state',em.gameManager.getState());guide.querySelector('h2').textContent='已保存快捷存档';}
@@ -120,6 +177,7 @@
     for(let n=0;n<groups.length;n++){i=(i+delta+groups.length)%groups.length;if(visible(groups[i])){focus(groups[i]);return;}}
   }
   function act(button) {
+    if(settingsDialog.open){if(button===1)settingsDialog.close();else if(button===0 && settingsDialog.contains(document.activeElement)){if(document.activeElement.tagName==='SELECT')move('right');else document.activeElement.click();}return;}
     if(guide.open){if(button===1)guide.close();else if(button===0 && guide.contains(document.activeElement))document.activeElement.click();return;}
     if(!playing && button===8){openGuide();return;}
     if(!playing && !lobby){if(button===1)location.assign('/library/');else if(button===0 && controls().includes(document.activeElement)){const n=document.activeElement;if(n.tagName==='A')location.assign(n.href);else n.click();}else if(button===4 || button===5)window.scrollBy(0,button===4?-innerHeight*.7:innerHeight*.7);return;}
@@ -159,30 +217,45 @@
     let pads;
     try { pads=Array.from(navigator.getGamepads?.() || []).filter(p=>p && p.connected); }
     catch {hint.textContent='浏览器禁止读取手柄，请通过可信 HTTPS 打开并检查权限。';return;}
+    const listKey=JSON.stringify(pads.map(p=>[p.id,p.index,p.mapping]));
+    if(listKey!==deviceListKey){
+      deviceListKey=listKey;deviceSelect.replaceChildren(new Option('自动（优先标准手柄）',''));
+      for(const p of pads)deviceSelect.add(new Option(`${p.index+1} · ${p.id}`,deviceKey(p)));
+      chosenDevice=pads.some(p=>deviceKey(p)===settings.device)?settings.device:'';
+      deviceSelect.value=chosenDevice;
+    }
     if (!pads.length) {
+      status('等待连接：在当前页面按任意手柄键并松开。');samples.clear();
       if(padIndex!==null){hint.textContent='手柄已断开，请重新连接后按任意键。';padIndex=null;document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));}
       previous.clear(); direction=''; comboAt=0; comboArmed=false; neutralRequired=true; return;
     }
-    // The last controller with input takes over; never combine two players' buttons.
-    const hasInput=p=>p.buttons.some(b=>b.pressed || b.value>.5) || p.axes.slice(0,2).some(a=>Math.abs(a)>.55);
-    const pad=pads.find(p=>p.index!==padIndex && hasInput(p)) || pads.find(p=>p.index===padIndex) || pads[0];
+    // A dial or custom HID may report permanently deflected axes. Prefer standard
+    // controllers and switch on NEW input, never on a device's steady axis value.
+    const states=new Map(pads.map(p=>[p.index,{
+      buttons:p.buttons.map(b=>b.pressed || b.value>.5),
+      axes:p.axes.slice(0,2).map(a=>Math.abs(a)>settings.deadzone?Math.sign(a):0)
+    }]));
+    const fresh=p=>{const old=samples.get(deviceKey(p)),s=states.get(p.index);return !!old && (s.buttons.some((v,i)=>v&&!old.buttons[i]) || s.axes.some((v,i)=>v && v!==old.axes[i]));};
+    const standard=pads.filter(p=>p.mapping==='standard');
+    const candidates=chosenDevice?pads.filter(p=>deviceKey(p)===chosenDevice):standard.length?standard:pads;
+    const pad=candidates.find(p=>p.index!==padIndex && fresh(p)) || candidates.find(p=>p.index===padIndex) || candidates[0];
+    samples.clear();for(const p of pads)samples.set(deviceKey(p),states.get(p.index));
     if(pad.index!==padIndex){padIndex=pad.index;previous.clear();direction='';neutralRequired=true;comboArmed=false;hint.textContent='手柄已连接 · '+defaultHint;try{if(lobby && !sessionStorage.getItem('arcade-pad-intro')){sessionStorage.setItem('arcade-pad-intro','1');openGuide();}}catch{}}
     const down=new Set(pad.buttons.flatMap((b,i)=>(b.pressed || b.value>.5)?[i]:[]));
     let dir=down.has(12)?'up':down.has(13)?'down':down.has(14)?'left':down.has(15)?'right':'';
     const [x=0,y=0]=pad.axes;
-    if(!dir && Math.max(Math.abs(x),Math.abs(y))>.55)dir=Math.abs(x)>Math.abs(y)?(x<0?'left':'right'):(y<0?'up':'down');
-    if (document.hidden || !document.hasFocus()) {neutralRequired=true;previous=down;direction='';comboAt=0;return;}
+    if(!dir && Math.max(Math.abs(x),Math.abs(y))>settings.deadzone)dir=Math.abs(x)>Math.abs(y)?(x<0?'left':'right'):(y<0?'up':'down');
+    const deviceName=`${pad.index+1} · ${pad.id}`;
+    if (document.hidden || !document.hasFocus()) {status(deviceName+' · 请点击网页，使大厅获得焦点。');neutralRequired=true;previous=down;direction='';comboAt=0;return;}
     // A held launch button must be released on arrival/reconnect before it can act.
-    if(neutralRequired){if(!down.size && !dir){neutralRequired=false;comboArmed=true;}previous=down;return;}
-    if(playing && down.has(10) && down.has(11)){
-      if(menuArmed){if(!menuAt)menuAt=now;if(now-menuAt>=500){menuArmed=false;openGuide();}}
-    }else{menuAt=0;menuArmed=true;}
-    if(playing && !guide.open){
-      if(down.has(8)&&down.has(9)&&comboArmed){if(!comboAt)comboAt=now; if(now-comboAt>=1000){comboArmed=false;location.assign('/library/');}}
+    if(neutralRequired){if(!down.size && !dir){neutralRequired=false;comboArmed=true;}status(deviceName+(neutralRequired?' · 请松开按键和左摇杆。':' · 已就绪'));previous=down;return;}
+    status(deviceName+' · 已就绪'+(!chosenDevice && standard.length && pads.length>standard.length?'（自动忽略非标准设备的轴输入）':''));
+    if(playing && !guide.open && !settingsDialog.open){
+      if(settings.menu.split(',').every(i=>down.has(Number(i))) && comboArmed){if(!comboAt)comboAt=now;if(now-comboAt>=settings.hold){comboArmed=false;openGuide();}}
       else comboAt=0;
-    } else if(dir && (dir!==direction || now>=repeatAt)) {move(dir);repeatAt=now+(dir===direction?140:380);}
+    } else if(dir && (dir!==direction || now>=repeatAt)) {move(dir);repeatAt=now+(dir===direction?settings.repeat:380);}
     const [,,rx=0,ry=0]=pad.axes;
-    if(Math.abs(ry)>.35){const target=$('#description');if($('#detail[open]') && target)target.scrollTop+=ry*12;else if(guide.open)guide.scrollTop+=ry*12;else window.scrollBy(0,ry*12);}
+    if(Math.abs(ry)>.35){const target=$('#description');if(settingsDialog.open)settingsDialog.scrollTop+=ry*12;else if($('#detail[open]') && target)target.scrollTop+=ry*12;else if(guide.open)guide.scrollTop+=ry*12;else window.scrollBy(0,ry*12);}
     if(lobby && $('#detail').open && Math.abs(rx)>.55 && now>=repeatAt){const v=$('#preview');if(Number.isFinite(v.duration))v.currentTime=Math.max(0,Math.min(v.duration,v.currentTime+Math.sign(rx)*5));repeatAt=now+300;}
     direction=dir;
     for(const b of down)if(!previous.has(b))act(b);
