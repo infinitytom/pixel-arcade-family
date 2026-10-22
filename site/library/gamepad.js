@@ -22,6 +22,7 @@
   function saveSettings(){try{localStorage.setItem('arcade-controller-settings',JSON.stringify(settings));settingsNote.textContent='已保存在当前浏览器。';}catch{settingsNote.textContent='浏览器不允许保存，设置仅本次页面有效。';}}
   const menuNames={'8,9':'Select + Start','10,11':'L3 + R3','4,5':'LB + RB','6,7':'LT + RT'};
   function menuHelp(){return `${menuNames[settings.menu]} 按住 ${settings.hold/1000} 秒打开游戏菜单`;}
+  function refreshMenuHints(){if(playing){defaultHint='A 启动 · '+menuHelp()+' · 可在手柄设置中更改';hint.textContent=defaultHint;}const line=$('#padMenuHelp');if(line)line.textContent=menuHelp();}
   const hint = document.createElement('p');
   hint.id = 'gamepadHint';
   hint.setAttribute('role', 'status');
@@ -93,7 +94,7 @@
     const labelNode=document.createElement('label');labelNode.textContent=label;
     const select=document.createElement('select');select.id='padSetting-'+key;select.setAttribute('aria-label',label);
     for(const [value,name] of options)select.add(new Option(name,String(value)));
-    select.value=String(settings[key]);select.onchange=()=>{settings[key]=key==='menu'?select.value:Number(select.value);saveSettings();if(playing){defaultHint='A 启动 · '+menuHelp()+' · 可在手柄设置中更改';hint.textContent=defaultHint;}};
+    select.value=String(settings[key]);select.onchange=()=>{settings[key]=key==='menu'?select.value:Number(select.value);saveSettings();refreshMenuHints();};
     labelNode.append(select);settingsFields.append(labelNode);settingControls.set(key,select);
   }
   let beforeSettings,resumeAfterSettings=false;
@@ -107,7 +108,7 @@
   const resetButton=document.createElement('button');resetButton.textContent='恢复默认设置';resetButton.onclick=()=>{
     settings={...defaults};chosenDevice='';deviceSelect.value='';
     for(const [key,select] of settingControls)select.value=String(settings[key]);
-    if(playing){defaultHint='A 启动 · '+menuHelp()+' · 可在手柄设置中更改';hint.textContent=defaultHint;}saveSettings();
+    refreshMenuHints();saveSettings();
   };
   const doneButton=document.createElement('button');doneButton.textContent='完成（B）';doneButton.onclick=()=>settingsDialog.close();settingsDialog.append(resetButton,doneButton);
   settingsDialog.addEventListener('close',()=>{deviceBar.prepend(deviceLabel);if(resumeAfterSettings)window.EJS_emulator?.play();resumeAfterSettings=false;focus(beforeSettings?.isConnected?beforeSettings:firstGame());neutralRequired=true;});
@@ -121,7 +122,7 @@
     resumeAfterGuide=!!(playing && em?.started && !em.paused);
     if(resumeAfterGuide)em.pause();
     const close=guideAction(playing?'继续游戏（B）':'明白了（B）',()=>guide.close());
-    guide.querySelector('dl').append(Object.assign(document.createElement('dt'),{textContent:'当前菜单快捷键'}),Object.assign(document.createElement('dd'),{textContent:menuHelp()}));
+    guide.querySelector('dl').append(Object.assign(document.createElement('dt'),{textContent:'当前菜单快捷键'}),Object.assign(document.createElement('dd'),{id:'padMenuHelp',textContent:menuHelp()}));
     guideAction('手柄设置',openSettings);
     if(playing){
       guideAction('快捷存档',async()=>{

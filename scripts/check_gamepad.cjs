@@ -82,6 +82,9 @@ const server=http.createServer((req,res)=>{
     await down(8,9);await page.waitForTimeout(1100);assert.match(page.url(),/play.html/);await down();
     await page.locator('#padSettingsButton').click();await page.locator('#padSetting-menu').selectOption('10,11');await page.locator('#padSetting-hold').selectOption('500');await press(1);
     await down(10,11);await page.waitForTimeout(550);await down();assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
+    assert.match(await page.locator('#padMenuHelp').innerText(),/L3 \+ R3/);
+    await page.locator('#padGuide').getByRole('button',{name:'手柄设置',exact:true}).click();await page.locator('#padSetting-menu').selectOption('4,5');await press(1);
+    assert.match(await page.locator('#padMenuHelp').innerText(),/LB \+ RB/);assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
     await page.getByRole('button',{name:'快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.stateSlot),[1,2,3]);
     await page.getByRole('button',{name:'读取快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.loadedState),[1,2,3]);assert.equal(await page.evaluate(()=>EJS_emulator.paused),false);
     await page.locator('#padSettingsButton').click();await page.getByRole('button',{name:'恢复默认设置',exact:true}).click();await press(1);
