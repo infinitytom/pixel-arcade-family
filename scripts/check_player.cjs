@@ -18,7 +18,7 @@ const fs=require('node:fs');
     const press=async(b,index=1)=>{await down([b],index);await down([],index);};
     await page.goto((process.env.DEMO_URL||'http://127.0.0.1:18893')+(process.env.PLAYER_PATH||'/play.html?core=mame2003_plus&src=/roms/%E5%8A%A8%E4%BD%9C%E8%A1%97%E6%9C%BA/dino.zip&name=恐龙新世纪'));
     await page.bringToFront();await page.locator('.ejs_start_button').waitFor({timeout:30000});
-    await page.locator('#game').click({position:{x:10,y:10}});await down();await press(0);
+    await page.locator('#launchStatus').click();await down();assert.equal(await page.locator('#playerStart').isEnabled(),true);fs.mkdirSync('test-results',{recursive:true});await page.screenshot({path:'test-results/player-start.png'});await press(0);assert.equal(await page.locator('#playerLaunch').isVisible(),false);
     await page.waitForFunction(()=>window.EJS_emulator?.started,null,{timeout:90000});await page.waitForTimeout(3000);
     assert.deepEqual(await page.evaluate(()=>EJS_emulator.gamepadSelection.slice(0,2)),['Xbox player one_1','Xbox player two_2']);
     await page.evaluate(()=>{window.inputs=[];const em=EJS_emulator,original=em.gameManager.simulateInput.bind(em.gameManager);em.gameManager.simulateInput=(p,b,v)=>{inputs.push([p,b,v]);return original(p,b,v);};});

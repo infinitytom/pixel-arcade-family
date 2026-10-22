@@ -4,7 +4,7 @@
   const $ = s => document.querySelector(s);
   const playing = !!$('#game');
   const lobby = !!$('#grid');
-  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad113';document.head.append(sheet);
+  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad113b';document.head.append(sheet);
   let previous = new Set(), direction = '', repeatAt = 0, padIndex = null;
   let comboAt = 0, comboArmed = false, neutralRequired = true, returnFocus = null;
   let inputSeen=false, focusSuspended=false, lastDeviceName='';
@@ -59,12 +59,12 @@
     n.classList.add('pad-focus'); n.focus({preventScroll:true});
     n.scrollIntoView({block:'nearest', inline:'nearest'});
   }
-  function scope() { return $('#padSettings[open]') || $('#padGuide[open]') || $('#padKeyboard[open]') || $('#detail[open]') || document; }
+  function scope() { return $('#padSettings[open]') || $('#padGuide[open]') || $('#padKeyboard[open]') || $('#detail[open]') || (playing&&!$('#playerLaunch')?.hidden?$('#playerLaunch'):null) || document; }
   function controls() {
     return [...scope().querySelectorAll('button, a[href], input, select')].filter(visible);
   }
   function firstGame() { return playing ? $('#game canvas') || $('#game') : $('#grid .cover') || $('#search') || document.querySelector('a[href]') || guideButton; }
-  function focusGame(){if(!playing)return;document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));const target=firstGame();target.tabIndex=-1;target.focus({preventScroll:true});}
+  function focusGame(){if(!playing)return;if(!$('#playerLaunch').hidden){focus(!$('#playerStart').disabled?$('#playerStart'):$('#playerLaunchBack'));return;}document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));const target=firstGame();target.tabIndex=-1;target.focus({preventScroll:true});}
   function move(dir) {
     const all = controls(), active = document.activeElement;
     if (!all.includes(active)) { focus(scope() === document ? firstGame() : all[0]); return; }
@@ -135,7 +135,7 @@
     resumeAfterGuide=!!(playing && em?.started && !em.paused);
     if(resumeAfterGuide)em.pause();
     if(playing){releaseGameInput();guide.innerHTML='<h2>游戏菜单</h2><p id="padMenuHelp"></p><p>方向选择 · A 确认 · B 继续游戏</p><p class="player-basics">Select 投币 · Start 开始 · 十字键 / 左摇杆移动<br>动作键随游戏而异，可在下方查看按键。</p>';$('#padMenuHelp').textContent=menuHelp()+'；也可按手柄 Home 键或键盘 Esc。';}
-    const close=guideAction(playing?(em?.started?'继续游戏（B）':'开始游戏（A）'):'明白了（B）',()=>{guide.close();if(playing&&!em?.started)$('.ejs_start_button')?.click();});
+    const close=guideAction(playing?(em?.started?'继续游戏（B）':'开始游戏（A）'):'明白了（B）',()=>{guide.close();if(playing&&!em?.started)startPlayerGame();});
     if(!playing)guide.querySelector('dl').append(Object.assign(document.createElement('dt'),{textContent:'当前菜单快捷键'}),Object.assign(document.createElement('dd'),{id:'padMenuHelp',textContent:menuHelp()}));
     if(playing)guideAction('全屏 / 退出全屏（F）',togglePlayerFullscreen);
     guideAction('手柄设置',openSettings);
@@ -164,12 +164,19 @@
   guide.addEventListener('close',()=>{if(playing)releaseGameInput();if(resumeAfterGuide)window.EJS_emulator?.play();resumeAfterGuide=false;if(playing)focusGame();else focus(beforeGuide?.isConnected?beforeGuide:firstGame());neutralRequired=true;});
   // Game diagnostics live in settings, never above or over the running canvas.
   if(playing){
+    $('#playerStart').onclick=startPlayerGame;$('#playerLaunchBack').onclick=()=>location.assign('/library/');
     settingsDialog.insertBefore(hint,settingsFields);settingsDialog.insertBefore(deviceBar,settingsFields);
     deviceBar.append(deviceLabel,deviceStatus,activateButton);settingsButton.remove();
     document.querySelector('header').append(guideButton);guideButton.textContent='游戏菜单';refreshMenuHints();
     settingsDialog.querySelector('p:last-of-type').textContent='玩家按顺序分配给标准手柄，可在这里更改。每个控制器只能分配给一位玩家。';
     const players=document.createElement('section');players.id='playerAssignments';players.innerHTML='<h3>游戏玩家与按键</h3><p>正在等待模拟器就绪…</p>';settingsFields.prepend(players);
     document.addEventListener('keydown',e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(settingsDialog.open)settingsDialog.close();else if(guide.open)guide.close();else openGuide();}else if(e.key.toLowerCase()==='f'&&!settingsDialog.open){e.preventDefault();togglePlayerFullscreen();}},true);
+  }
+  function startPlayerGame(){if(window.EJS_emulator?.started)return;const start=$('.ejs_start_button');if(!start)return;$('#playerLaunch').hidden=true;$('#playerMenuHint').textContent='正在加载游戏… · Esc 打开菜单';start.click();focusGame();}
+  function updatePlayerLaunch(){
+    if(!playing)return;const launch=$('#playerLaunch'),button=$('#playerStart'),em=window.EJS_emulator;
+    if(em?.started){if(!launch.hidden)launch.hidden=true;if(!launch.dataset.started){launch.dataset.started='1';refreshMenuHints();}return;}
+    if(!launch.hidden&&button.disabled&&$('.ejs_start_button')){button.disabled=false;button.textContent='Ⓐ 开始游戏';$('#launchStatus').textContent='准备好了，按手柄 A 或点击下方按钮。';if(!guide.open&&!settingsDialog.open)focus(button);}
   }
   async function togglePlayerFullscreen(){
     const exiting=document.body.classList.contains('player-immersive')||document.fullscreenElement;
@@ -273,7 +280,8 @@
     if(!playing && !lobby){if(button===1)location.assign('/library/');else if(button===0 && controls().includes(document.activeElement)){const n=document.activeElement;if(n.tagName==='A')location.assign(n.href);else n.click();}else if(button===4 || button===5)window.scrollBy(0,button===4?-innerHeight*.7:innerHeight*.7);return;}
     if (playing) {
       // Leave running-game input to EmulatorJS. Only activate its initial start button.
-      if (button === 0) $('.ejs_start_button')?.click();
+      if (button === 0){if(!$('#playerLaunch').hidden&&document.activeElement===$('#playerLaunchBack'))$('#playerLaunchBack').click();else startPlayerGame();}
+      if (button === 1 && !$('#playerLaunch').hidden)$('#playerLaunchBack').click();
       if (button === 16) openGuide();
       return;
     }
@@ -305,6 +313,7 @@
   }
   function poll(now) {
     requestAnimationFrame(poll);
+    updatePlayerLaunch();
     let pads;
     try { pads=Array.from(navigator.getGamepads?.() || []).filter(p=>p && p.connected); }
     catch {hint.textContent='浏览器禁止读取手柄，请通过可信 HTTPS 打开并检查权限。';return;}
@@ -349,6 +358,7 @@
     if(neutralRequired){if(!down.size && !dir){neutralRequired=false;comboArmed=true;}status(deviceName+' · '+(neutralRequired?'已识别设备 · 请松开按键和左摇杆。':reception));previous=down;return;}
     status(deviceName+' · '+reception+(!chosenDevice && standard.length && pads.length>standard.length?'（自动忽略非标准设备的轴输入）':''));
     if(playing && !guide.open && !settingsDialog.open){
+      if(!$('#playerLaunch').hidden&&dir&&(dir!==direction||now>=repeatAt)){move(dir);repeatAt=now+(dir===direction?settings.repeat:380);}
       if(settings.menu.split(',').every(i=>down.has(Number(i))) && comboArmed){if(!comboAt)comboAt=now;if(now-comboAt>=settings.hold){comboArmed=false;openGuide();}}
       else comboAt=0;
     } else if(dir && (dir!==direction || now>=repeatAt)) {move(dir);repeatAt=now+(dir===direction?settings.repeat:380);}

@@ -4,7 +4,7 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
-v1.1.3：游戏页改为紧凑布局，检测信息收进设置；统一游戏菜单提供全屏、存读档、返回大厅和玩家按键设置。标准手柄优先分配，补齐多人默认按键，修复菜单输入穿透及控制器拔插索引问题。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，解压后按下方步骤部署；已有安装拉取最新源码后重新构建容器。
+v1.1.3：新增清晰的手柄启动页（A 开始、B 返回、投币开局说明）；游戏页改为紧凑布局，检测信息收进设置；统一游戏菜单提供全屏、存读档、返回大厅和玩家按键设置。标准手柄优先分配，补齐多人默认按键，修复菜单输入穿透及控制器拔插索引问题。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，解压后按下方步骤部署；已有安装拉取最新源码后重新构建容器。
 
 [观看本次简短更新说明视频](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
 
