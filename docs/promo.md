@@ -2,7 +2,7 @@
 
 ## v1.1.2 简短更新说明
 
-[观看更新说明](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)。约 45 秒、1600×1000、30 fps，无配音、无音轨。录制实际运行的界面，介绍先激活网页、输入状态、手柄设置、恢复默认和操作指南。UU 虚拟手柄大厅操作已有用户确认；视频不演示游戏内或多人验收。
+[观看更新说明](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)。约 28 秒、1600×1000、30 fps，无配音、无音轨。录制实际运行的界面，展示手柄挑游戏、醒目的高亮、更大字体、个性化设置和随手可查的操作提示。视频文案围绕玩家体验，不包含故障排查或验收结论。UU 虚拟手柄大厅操作已有用户确认；视频不演示游戏内或多人验收。
 
 使用含资源的本地服务（默认 `http://127.0.0.1:18893`），安装 Playwright 与 FFmpeg 后运行 `node scripts/record_update.cjs`。可设置 `DEMO_URL` 和 `BROWSER_CHANNEL`。脚本仅在独立浏览器上下文操作界面，不修改用户浏览器配置。成片、预览与时间线保存在 `dist/`。
 
