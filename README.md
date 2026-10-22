@@ -4,6 +4,8 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
+v1.1.0：新增手柄大厅操作、首次引导、游戏暂停菜单和大字体。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，解压后按下方步骤部署；已有安装拉取最新源码后重新构建容器。
+
 中文游戏库、分类搜索、封面与视频预览、收藏、最近游玩。打开浏览器即可游玩，无需续映账号。适合飞牛 fnOS，也可部署在能运行 Docker 的 Linux 主机上。
 
 ![家庭版大厅](docs/library.png)
