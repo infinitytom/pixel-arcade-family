@@ -34,6 +34,8 @@ const server=http.createServer((req,res)=>{
     const active=()=>page.evaluate(()=>document.activeElement.id||document.activeElement.className);
     await page.goto(base+'/library/');await page.bringToFront();await page.waitForSelector('.cover');await down();
     await press(8);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);await press(1);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),false);
+    await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await down();
+    assert.match(await page.locator('#padDeviceStatus').innerText(),/已识别设备/);assert.doesNotMatch(await page.locator('#padDeviceStatus').innerText(),/已就绪/);
     await press(15);assert.match(await active(),/cover/);
     await press(15);assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true);
     await press(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),true);assert.equal(await active(),'play');
@@ -54,6 +56,13 @@ const server=http.createServer((req,res)=>{
     await page.locator('.pad-keys button').filter({hasText:/^g$/}).focus();await press(0);assert.equal(await page.locator('#search').inputValue(),'g');
     await page.locator('.pad-key-actions button').filter({hasText:'清空'}).focus();await press(0);assert.equal(await page.locator('#search').inputValue(),'');
     await press(1);assert.match(await active(),/cover/);
+    // Blur must update the label immediately, even before another animation frame.
+    await focus('.cover');
+    const lost=await page.evaluate(()=>{window.dispatchEvent(new Event('blur'));return document.querySelector('#padDeviceStatus').textContent;});assert.match(lost,/已暂停接收/);
+    await down(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),false);
+    await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await down(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),false,'held A on focus regain must not activate');
+    await down();assert.match(await page.locator('#padDeviceStatus').innerText(),/已收到输入/);
+    await press(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),true);await press(1);
     // Analog input and dead zone; disconnect/reconnect must not activate held A.
     await focus('.cover');await page.evaluate(()=>window.pads[0].axes=[.2,0]);await page.waitForTimeout(90);assert.equal(await page.locator('.cover').first().evaluate(n=>n===document.activeElement),true);
     await page.evaluate(()=>window.pads[0].axes=[.8,0]);await page.waitForTimeout(90);assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true);
@@ -68,10 +77,10 @@ const server=http.createServer((req,res)=>{
     });
     await down();await focus('.cover');await press(15);
     assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true,'UU pad must work beside an off-centre Leonardo');
-    assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox.*已就绪/);
+    assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox.*(已识别设备|正在接收输入|已收到输入)/);
     await page.waitForTimeout(450);await press(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),true);await press(1);
     await page.locator('#padDevice').selectOption(JSON.stringify(['Arduino Leonardo',0]));await page.waitForTimeout(90);assert.match(await page.locator('#padDeviceStatus').innerText(),/Arduino.*松开/);
-    await page.locator('#padDevice').selectOption('');await down();assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox.*已就绪/);
+    await page.locator('#padDevice').selectOption('');await down();assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox.*(已识别设备|正在接收输入|已收到输入)/);
     // Another standard pad with a held axis must not bounce ownership every frame.
     await page.evaluate(()=>window.pads.push({id:'Second Xbox',index:2,connected:true,mapping:'standard',axes:[1,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}));
     await down();await page.waitForTimeout(120);assert.match(await page.locator('#padDeviceStatus').innerText(),/UU Xbox/);

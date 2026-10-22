@@ -1,6 +1,6 @@
 services:
   arcade:
-    image: pixel-arcade-family:1.1.1
+    image: pixel-arcade-family:1.1.2
     build: .
     restart: unless-stopped
     ports:

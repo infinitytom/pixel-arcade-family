@@ -4,9 +4,10 @@
   const $ = s => document.querySelector(s);
   const playing = !!$('#game');
   const lobby = !!$('#grid');
-  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad111';document.head.append(sheet);
+  const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='/library/controller.css?v=gamepad112';document.head.append(sheet);
   let previous = new Set(), direction = '', repeatAt = 0, padIndex = null;
   let comboAt = 0, comboArmed = false, neutralRequired = true, returnFocus = null;
+  let inputSeen=false, focusSuspended=false, lastDeviceName='';
   const samples=new Map();
   let chosenDevice='', deviceListKey='';
   const defaults={menu:'8,9',hold:1000,deadzone:.55,repeat:140,device:''};
@@ -37,6 +38,16 @@
   const deviceStatus=document.createElement('span');deviceStatus.id='padDeviceStatus';deviceStatus.setAttribute('role','status');
   deviceLabel.append(deviceSelect);deviceBar.append(deviceLabel,deviceStatus);hint.after(deviceBar);
   function status(text){if(deviceStatus.textContent!==text)deviceStatus.textContent=text;}
+  function suspendInput(){
+    focusSuspended=true;inputSeen=false;neutralRequired=true;previous.clear();direction='';comboAt=0;comboArmed=false;
+    status((lastDeviceName?lastDeviceName+' · ':'')+'已暂停接收：切回此窗口并点击网页，再操作手柄。');
+  }
+  function resumeInput(){
+    focusSuspended=false;inputSeen=false;neutralRequired=true;previous.clear();samples.clear();direction='';comboAt=0;
+    status((lastDeviceName?lastDeviceName+' · ':'')+'窗口已激活：请松开按键，再按方向或 A 确认输入。');
+  }
+  const activateButton=document.createElement('button');activateButton.id='padActivate';activateButton.textContent='点击这里后使用手柄';
+  activateButton.onclick=()=>{resumeInput();const target=scope()===document?firstGame():controls()[0];focus(target);};deviceBar.append(activateButton);
   const deviceKey=p=>JSON.stringify([p.id,p.index]);
   deviceSelect.addEventListener('change',()=>{chosenDevice=deviceSelect.value;settings.device=chosenDevice;saveSettings();padIndex=null;neutralRequired=true;previous.clear();direction='';});
 
@@ -113,7 +124,7 @@
   const doneButton=document.createElement('button');doneButton.textContent='完成（B）';doneButton.onclick=()=>settingsDialog.close();settingsDialog.append(resetButton,doneButton);
   settingsDialog.addEventListener('close',()=>{deviceBar.prepend(deviceLabel);if(resumeAfterSettings)window.EJS_emulator?.play();resumeAfterSettings=false;focus(beforeSettings?.isConnected?beforeSettings:firstGame());neutralRequired=true;});
   let beforeGuide, resumeAfterGuide=false;
-  const guideText='<h2>拿起手柄，开始一局</h2><p>① 连接到当前设备，按任意键并松开。<br>② 十字键或左摇杆移动高亮，A 确认，B 返回。<br>③ 选中游戏按 A 看详情，Start 直接开始。</p><dl><dt>X / Y</dt><dd>搜索或预览 / 收藏当前游戏</dd><dt>LB / RB</dt><dd>上一页 / 下一页；阅读页面时滚动</dd><dt>LT / RT</dt><dd>快速切换视图、分类、排序、游戏、分页分区</dd><dt>排序 / 模拟核心</dt><dd>左右切换选项，上下移动到其他控件</dd><dt>搜索</dt><dd>屏幕键盘输入拼音、英文或 ROM 名；B 完成并回到结果</dd><dt>右摇杆</dt><dd>滚动页面或详情文字；预览时左右快退 / 快进</dd><dt>游戏菜单</dt><dd>在「手柄设置」中查看或更改菜单组合键：暂停、快捷存读档、重新开始、返回大厅</dd></dl><p>按键名称按 Xbox / 标准 Gamepad 位置标注，其他手柄字母可能不同。无反应时打开控制器检测；需要可信 HTTPS。游戏内动作与投币按键在模拟器中映射。</p>';
+  const guideText='<h2>拿起手柄，开始一局</h2><p>① 连接到当前设备，先点击此网页，再按任意键并松开。<br>② 保持此窗口在前台；十字键或左摇杆移动高亮，A 确认，B 返回。<br>③ 选中游戏按 A 看详情，Start 直接开始。</p><dl><dt>X / Y</dt><dd>搜索或预览 / 收藏当前游戏</dd><dt>LB / RB</dt><dd>上一页 / 下一页；阅读页面时滚动</dd><dt>LT / RT</dt><dd>快速切换视图、分类、排序、游戏、分页分区</dd><dt>排序 / 模拟核心</dt><dd>左右切换选项，上下移动到其他控件</dd><dt>搜索</dt><dd>屏幕键盘输入拼音、英文或 ROM 名；B 完成并回到结果</dd><dt>右摇杆</dt><dd>滚动页面或详情文字；预览时左右快退 / 快进</dd><dt>游戏菜单</dt><dd>在「手柄设置」中查看或更改菜单组合键：暂停、快捷存读档、重新开始、返回大厅</dd></dl><p>按键名称按 Xbox / 标准 Gamepad 位置标注，其他手柄字母可能不同。无反应时打开控制器检测；需要可信 HTTPS。游戏内动作与投币按键在模拟器中映射。</p>';
   function guideAction(label, fn) {const b=document.createElement('button');b.textContent=label;b.onclick=fn;guide.append(b);return b;}
   function openGuide() {
     if(guide.open)return;
@@ -226,7 +237,7 @@
       deviceSelect.value=chosenDevice;
     }
     if (!pads.length) {
-      status('等待连接：在当前页面按任意手柄键并松开。');samples.clear();
+      status('等待连接：先点击此网页，再按手柄任意键并松开。');samples.clear();inputSeen=false;lastDeviceName='';
       if(padIndex!==null){hint.textContent='手柄已断开，请重新连接后按任意键。';padIndex=null;document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));}
       previous.clear(); direction=''; comboAt=0; comboArmed=false; neutralRequired=true; return;
     }
@@ -234,23 +245,29 @@
     // controllers and switch on NEW input, never on a device's steady axis value.
     const states=new Map(pads.map(p=>[p.index,{
       buttons:p.buttons.map(b=>b.pressed || b.value>.5),
-      axes:p.axes.slice(0,2).map(a=>Math.abs(a)>settings.deadzone?Math.sign(a):0)
+      axes:p.axes.slice(0,2).map(a=>Math.abs(a)>settings.deadzone?Math.sign(a):0),
+      rawAxes:p.axes.slice(0,4)
     }]));
     const fresh=p=>{const old=samples.get(deviceKey(p)),s=states.get(p.index);return !!old && (s.buttons.some((v,i)=>v&&!old.buttons[i]) || s.axes.some((v,i)=>v && v!==old.axes[i]));};
     const standard=pads.filter(p=>p.mapping==='standard');
     const candidates=chosenDevice?pads.filter(p=>deviceKey(p)===chosenDevice):standard.length?standard:pads;
     const pad=candidates.find(p=>p.index!==padIndex && fresh(p)) || candidates.find(p=>p.index===padIndex) || candidates[0];
+    const oldState=samples.get(deviceKey(pad)),state=states.get(pad.index);
+    const changed=!!oldState && (state.buttons.some((v,i)=>v!==oldState.buttons[i]) || state.rawAxes.some((v,i)=>Math.abs(v-oldState.rawAxes[i])>.05));
     samples.clear();for(const p of pads)samples.set(deviceKey(p),states.get(p.index));
-    if(pad.index!==padIndex){padIndex=pad.index;previous.clear();direction='';neutralRequired=true;comboArmed=false;hint.textContent='手柄已连接 · '+defaultHint;try{if(lobby && !sessionStorage.getItem('arcade-pad-intro')){sessionStorage.setItem('arcade-pad-intro','1');openGuide();}}catch{}}
+    if(pad.index!==padIndex){padIndex=pad.index;inputSeen=false;previous.clear();direction='';neutralRequired=true;comboArmed=false;hint.textContent='手柄已连接 · '+defaultHint;try{if(lobby && !sessionStorage.getItem('arcade-pad-intro')){sessionStorage.setItem('arcade-pad-intro','1');openGuide();}}catch{}}
     const down=new Set(pad.buttons.flatMap((b,i)=>(b.pressed || b.value>.5)?[i]:[]));
     let dir=down.has(12)?'up':down.has(13)?'down':down.has(14)?'left':down.has(15)?'right':'';
     const [x=0,y=0]=pad.axes;
     if(!dir && Math.max(Math.abs(x),Math.abs(y))>settings.deadzone)dir=Math.abs(x)>Math.abs(y)?(x<0?'left':'right'):(y<0?'up':'down');
     const deviceName=`${pad.index+1} · ${pad.id}`;
-    if (document.hidden || !document.hasFocus()) {status(deviceName+' · 请点击网页，使大厅获得焦点。');neutralRequired=true;previous=down;direction='';comboAt=0;return;}
+    lastDeviceName=deviceName;
+    if (document.hidden || !document.hasFocus() || focusSuspended) {suspendInput();return;}
+    if(changed)inputSeen=true;
+    const reception=inputSeen?(down.size||dir?'正在接收输入':'已收到输入 · 请保持此窗口在前台'):'已识别设备 · 请点击网页后按方向或 A 确认输入';
     // A held launch button must be released on arrival/reconnect before it can act.
-    if(neutralRequired){if(!down.size && !dir){neutralRequired=false;comboArmed=true;}status(deviceName+(neutralRequired?' · 请松开按键和左摇杆。':' · 已就绪'));previous=down;return;}
-    status(deviceName+' · 已就绪'+(!chosenDevice && standard.length && pads.length>standard.length?'（自动忽略非标准设备的轴输入）':''));
+    if(neutralRequired){if(!down.size && !dir){neutralRequired=false;comboArmed=true;}status(deviceName+' · '+(neutralRequired?'已识别设备 · 请松开按键和左摇杆。':reception));previous=down;return;}
+    status(deviceName+' · '+reception+(!chosenDevice && standard.length && pads.length>standard.length?'（自动忽略非标准设备的轴输入）':''));
     if(playing && !guide.open && !settingsDialog.open){
       if(settings.menu.split(',').every(i=>down.has(Number(i))) && comboArmed){if(!comboAt)comboAt=now;if(now-comboAt>=settings.hold){comboArmed=false;openGuide();}}
       else comboAt=0;
@@ -262,7 +279,11 @@
     for(const b of down)if(!previous.has(b))act(b);
     previous=down;
   }
-  document.addEventListener('pointerdown',()=>document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus')));
-  window.addEventListener('pagehide',()=>{neutralRequired=true;});
+  document.addEventListener('pointerdown',()=>{if(focusSuspended && !document.hidden && document.hasFocus())resumeInput();document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));});
+  // Update synchronously: animation frames may stop as soon as a tab loses focus.
+  window.addEventListener('blur',suspendInput);
+  window.addEventListener('focus',resumeInput);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden || !document.hasFocus())suspendInput();else resumeInput();});
+  window.addEventListener('pagehide',suspendInput);
   requestAnimationFrame(poll);
 })();
