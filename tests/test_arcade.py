@@ -1,4 +1,5 @@
 import json
+from html.parser import HTMLParser
 from pathlib import Path
 import tempfile
 import threading
@@ -124,6 +125,21 @@ class ServerTests(unittest.TestCase):
                 self.assertEqual(response.status, 200)
         with self.get('/data/test.wasm') as response:
             self.assertEqual(response.headers['Content-Type'], 'application/wasm')
+
+    def test_support_images_are_served(self):
+        sources = []
+        class Images(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                if tag == 'img':
+                    sources.append(dict(attrs)['src'])
+        with self.get('/support.html') as response:
+            Images().feed(response.read().decode('utf-8'))
+        self.assertTrue(sources, 'Support page must include its payment image')
+        for source in sources:
+            with self.get(source) as response:
+                self.assertEqual(response.status, 200)
+                self.assertEqual(response.headers['Content-Type'], 'image/jpeg')
+                self.assertEqual(response.read(), (self.server.site_root / source.lstrip('/')).read_bytes())
 
 
 if __name__ == '__main__':
