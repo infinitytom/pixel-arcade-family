@@ -195,7 +195,7 @@
     if(!playing)return;const launch=$('#playerLaunch'),button=$('#playerStart'),em=window.EJS_emulator;
     if(em?.started){if(!launch.hidden)launch.hidden=true;if(!launch.dataset.started){launch.dataset.started='1';window.ArcadePresentation?.ready();refreshMenuHints();window.ArcadeSession?.restore();}return;}
     if(em?.failedToStart){window.ArcadePresentation?.failed();launch.hidden=false;button.disabled=true;$('#launchStatus').textContent='游戏加载失败。请返回大厅尝试匹配的核心，或重新载入页面。';if(!$('#playerRetry')){const retry=document.createElement('button');retry.id='playerRetry';retry.textContent='重新载入页面';retry.onclick=()=>location.reload();button.after(retry);}return;}
-    if(!launch.hidden&&$('.ejs_start_button')){if(button.disabled){button.disabled=false;button.textContent='开始新游戏';$('#launchStatus').textContent='准备好了，选择开始新游戏，或继续上次游玩。';if(!guide.open&&!settingsDialog.open)focusGame();}if($('#playerContinue'))$('#playerContinue').disabled=false;}
+    if(!launch.hidden&&$('.ejs_start_button')){if($('#playerContinue'))$('#playerContinue').disabled=false;if(button.disabled){button.disabled=false;button.textContent='开始新游戏';$('#launchStatus').textContent='准备好了，选择开始新游戏，或继续上次游玩。';if(!guide.open&&!settingsDialog.open)focusGame();}}
   }
   async function togglePlayerFullscreen(){
     const exiting=document.body.classList.contains('player-immersive')||document.fullscreenElement;

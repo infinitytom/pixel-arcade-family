@@ -84,3 +84,5 @@ CI 状态可在 [Actions](https://github.com/infinitytom/pixel-arcade-family/act
 - 本机未安装 Docker；镜像构建和空游戏库容器由 GitHub Actions 检查。新版本 Release 的发布不表示用户 NAS 已自动更新，已有 NAS 仍需按更新说明重新构建部署。
 
 GitHub Actions 默认 runner 升至 Ubuntu 26.04，旧版锁定的 Playwright 不支持其依赖安装；本版本固定为 Ubuntu 24.04，保持原 Playwright 锁定版本不变。
+
+发布前 GitHub Actions [40525891700](https://github.com/infinitytom/pixel-arcade-family/actions/runs/40525891700) 已通过 Ubuntu 24.04 的单元测试、Chromium 导航、完整 Docker 构建及非 root 空库容器检查。继续入口的默认手柄焦点另通过真实核心回归检查。
