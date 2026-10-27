@@ -23,12 +23,17 @@ const server=http.createServer((req,res)=>{
     const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];
     page.setDefaultTimeout(10000);
     page.on('pageerror',e=>errors.push(e.message));
-    await page.addInitScript(()=>{
+    await page.addInitScript(()=>{localStorage.setItem('pixelarcade:local:preferences',JSON.stringify({fullscreen:'off',autoSave:'off'}));
       window.pads=[{id:'Test standard pad',index:0,connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}];
       if(location.pathname==='/play.html')window.pads[0].buttons[9]={pressed:true,value:1};
       Object.defineProperty(navigator,'getGamepads',{value:()=>window.pads});
     });
-    const down=async(...buttons)=>{await page.evaluate(bs=>{for(const p of window.pads)if(p) p.buttons.forEach((b,i)=>{b.pressed=bs.includes(i);b.value=b.pressed?1:0;});},buttons);await page.waitForTimeout(70);};
+    const down=async(...buttons)=>{
+      const apply=()=>page.evaluate(bs=>{for(const p of window.pads||[])if(p)p.buttons.forEach((b,i)=>{b.pressed=bs.includes(i);b.value=b.pressed?1:0;});},buttons);
+      try{await apply();}catch(e){if(!/Execution context was destroyed|Cannot find context/.test(e.message))throw e;await page.waitForLoadState('domcontentloaded');await apply();}
+      try{await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));}catch(e){if(!/Execution context was destroyed|Cannot find context/.test(e.message))throw e;await page.waitForLoadState('domcontentloaded');}
+      await page.waitForTimeout(40);
+    };
     const press=async b=>{await down(b);await down();};
     const focus=async s=>page.locator(s).first().focus();
     const active=()=>page.evaluate(()=>document.activeElement.id||document.activeElement.className);

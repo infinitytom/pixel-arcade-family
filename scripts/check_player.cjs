@@ -9,7 +9,7 @@ const fs=require('node:fs');
     const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[];
     page.setDefaultTimeout(10000);
     page.on('pageerror',e=>errors.push(e.message));
-    await page.addInitScript(()=>{
+    await page.addInitScript(()=>{localStorage.setItem('pixelarcade:local:preferences',JSON.stringify({fullscreen:'off',autoSave:'off'}));
       const pad=(id,index,mapping,axes=[0,0,0,0])=>({id,index,mapping,axes,connected:true,buttons:Array.from({length:17},()=>({pressed:false,value:0}))});
       window.pads=[pad('Arduino Leonardo',0,'',[.69,-.65,0,0]),pad('Xbox player one',1,'standard'),pad('Xbox player two',2,'standard')];
       Object.defineProperty(navigator,'getGamepads',{value:()=>window.pads});

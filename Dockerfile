@@ -10,6 +10,7 @@ LABEL org.opencontainers.image.title="像素放映厅 · 家庭版"
 WORKDIR /app
 COPY --from=engine /engine /app/engine
 COPY server.py catalog.py ./
+COPY scripts/fetch_cheats.py ./scripts/fetch_cheats.py
 COPY site ./site
 RUN mkdir /roms && chown 10001:10001 /roms
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 ROM_ROOT=/roms PORT=8080

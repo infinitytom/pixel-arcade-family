@@ -2,6 +2,23 @@
 @media(max-width:750px){.hero>div:first-child{width:66%;flex-shrink:0;padding:24px 20px}.hero-art{width:34%;flex-shrink:0}h1{font-size:26px}}
 .brand-icon{display:block;flex:none;width:42px;height:42px;border-radius:10px}@media(max-width:750px){.brand-icon{width:36px;height:36px;border-radius:9px}}
 
+/* Quiet cabinet surfaces keep the game artwork at the center. */
+body{background:radial-gradient(ellipse at 75% 0,#23291b55,transparent 55%),var(--bg)}
+.hero{background:linear-gradient(120deg,#29351f,#182016);box-shadow:0 20px 60px #0002;border-color:#d0ef882c;border-radius:24px}
+.hero-art{transform:none;background:#11190f;width:46%;border-left:1px solid #d0ef8824}
+.hero-art:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#1d2719,transparent 65%),linear-gradient(0deg,#0a1209a8,transparent 70%);pointer-events:none}
+.hero-art img{opacity:.65;object-position:center 30%;filter:saturate(.65)}
+.hero-art span{z-index:1;letter-spacing:4px}.hero-art b{font-size:clamp(23px,3vw,44px)}
+.hero button{border-radius:10px;padding:13px 20px;box-shadow:0 4px 18px #0002}
+.search{border-radius:12px;background:#ffffff03}.search:focus-within{border-color:#d0ef8890;box-shadow:0 0 0 3px #d0ef8810}
+.card{padding:9px 9px 13px;background:linear-gradient(150deg,#24291f,#191d16);border:1px solid #ffffff09;border-radius:14px;transition:background .18s,border-color .18s}
+.card:focus-within,.card:hover{background:#2b3323;border-color:#d0ef8844}
+.card h3{font-size:14px;margin:12px 26px 5px 3px}.card p{margin-left:3px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .fav{right:11px;bottom:29px}.cover{border-radius:9px;background:#10160e}.cover img{object-fit:contain}
+nav button{font-size:14px;padding:12px 14px}#chips button{font-size:12px;padding:8px 14px}
+.collection .section-head{padding-bottom:4px}.pagination button{border-radius:9px;background:#ffffff03}
+@media(max-width:750px){.hero{border-radius:17px}.hero-art{width:34%}.card{padding:6px 6px 10px;border-radius:10px}.card h3{font-size:12px;margin-left:1px}.card p{font-size:10px}.card .fav{right:7px;bottom:26px}}
+
 .support-link{display:block;padding:10px 8px;color:#c2d1ae;font-size:13px}.catalog-warning{color:#e8c18a;line-height:1.6}@media(max-width:750px){.support-link{display:inline-block;font-size:12px;padding:12px 12px 0 0}}
 
 /* Readable from a sofa, with an explicit controller focus indicator. */

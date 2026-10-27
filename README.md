@@ -18,6 +18,8 @@ v1.1.3：新增清晰的手柄启动页（A 开始、B 返回、投币开局说�
 
 宣传片采用实际界面录制与文字提示，配轻背景音乐，无配音和赞助码，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
 
+main 分支更新（尚未发布新的 Release）：统一界面与设备图标，新增全局画面默认设置、机台遮罩、中文金手指指引、默认全屏、可选历史进度恢复与缓存维护，并修复启动／插拔时的手柄分配。使用方法见 [设置与维护](docs/settings.md)。**已有安装如何升级、如何安装金手指、如何保留存档与回退，见 [更新部署指南](docs/update.md)。** [下一版本发布说明草稿](docs/release-next.md)尚未发布。
+
 ## 快速部署
 
 下载本仓库的 ZIP 并解压，或执行：
@@ -25,7 +27,7 @@ v1.1.3：新增清晰的手柄启动页（A 开始、B 返回、投币开局说�
 ```sh
 git clone https://github.com/infinitytom/pixel-arcade-family.git
 cd pixel-arcade-family
-mkdir -p roms
+mkdir -p roms cheats
 docker compose up -d --build
 ```
 

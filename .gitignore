@@ -7,6 +7,9 @@ roms/*
 dist/
 test-results/
 node_modules/
+site/library/cheats/
+cheats/*
+!cheats/.gitkeep
 *.tar
 *.tar.gz
 *.7z

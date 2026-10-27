@@ -8,4 +8,6 @@ tests
 test-results
 docs
 node_modules
+cheats
+site/library/cheats
 __pycache__

@@ -7,6 +7,7 @@ services:
       - "${ARCADE_PORT:-18888}:8080"
     volumes:
       - "${ROM_DIR:-./roms}:/roms:ro"
+      - "./cheats:/app/site/library/cheats:ro"
     environment:
       DEFAULT_CORE: "${DEFAULT_CORE:-fbneo}"
     read_only: true
