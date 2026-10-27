@@ -22,3 +22,9 @@ Offline source patch: after verified extraction, `scripts/fetch_engine.py` repla
 ## 可选原生金手指数据库
 
 下载器接入 https://github.com/finalburnneo/FBNeo-cheats 与 https://github.com/libretro/mame2003-plus-libretro/blob/master/metadata/cheat.dat ，仅在使用者运行下载命令时取得资源。源码与发布包不附带数据库；上游未明确提供独立数据库再分发许可，不能将本项目 GPL 视为其许可。安装文件保留来源、SHA-256 与 MAME 原始署名。详见 [更新指南](docs/update.md)。新增边框为本项目 CSS 原创图形，滤镜复用既有 EmulatorJS 内置着色器及其原始许可。
+
+## 画面比例资料与操作音
+
+`site/library/game-layouts.json` 仅包含 ROM 集名称与显示宽高比的派生事实，不包含 ROM、原始 XML/DAT、游戏海报或音频。资料由 `scripts/fetch_layouts.py` 从官方 [MAME 2003 Plus metadata](https://github.com/libretro/mame2003-plus-libretro/blob/master/metadata/mame2003-plus.xml) 和 [libretro/FBNeo DAT](https://github.com/libretro/FBNeo/tree/master/dats) 提取，原始地址及 SHA-256 保留在 JSON 的 sources 字段。游戏资源及上游原始数据库仍遵循各自条款。
+
+操作音由本项目的 `sounds.js` 用 Web Audio 三角波与音量包络原创合成，不使用外部采样或录音。发布页的试听 WAV 为同一程序实际输出的录制。

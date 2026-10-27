@@ -2,8 +2,8 @@
 (() => {
   'use strict';
   const assets=new URL('./',document.currentScript.src),playing=!!document.querySelector('#game');
-  const schema={filter:['original','soft','crt'],frame:['none','club','neon'],mask:['none','scan','aperture'],strength:['light','balanced','strong'],cheats:['manual','disabled'],fullscreen:['on','off'],resume:['offer','off'],autoSave:['on','off'],cacheDays:['0','1','7','30'],inputStyle:['auto','keyboard','xbox','playstation','nintendo','generic','arcade']};
-  const defaults={filter:'original',frame:'club',mask:'none',strength:'balanced',cheats:'manual',fullscreen:'on',resume:'offer',autoSave:'on',cacheDays:'0',inputStyle:'auto'};
+  const schema={filter:['original','soft','crt'],frame:['none','club','neon'],mask:['none','scan','aperture'],strength:['light','balanced','strong'],cheats:['manual','disabled'],fullscreen:['on','off'],resume:['offer','off'],autoSave:['on','off'],cacheDays:['0','1','7','30'],uiSound:['on','off'],uiVolume:['10','20','35','50','75','100'],inputStyle:['auto','keyboard','xbox','playstation','nintendo','generic','arcade']};
+  const defaults={filter:'original',frame:'club',mask:'none',strength:'balanced',cheats:'manual',fullscreen:'on',resume:'offer',autoSave:'on',cacheDays:'0',inputStyle:'auto',uiSound:'on',uiVolume:'20'};
   let settings={...defaults},scope='pixelarcade:local:',persisted=true,identityReady=true;
   const key=name=>scope+name;
   const ready=(async()=>{
@@ -51,11 +51,11 @@
     try{const amounts=[];for(const [name,store] of cacheStores)amounts.push(await cacheStore(name,store,true));if(window.caches)for(const name of await caches.keys())if(name.startsWith('pixelarcade-cache-'))await caches.delete(name);try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}return amounts.reduce((a,b)=>a+b,0);}finally{cleaning=false;}
   }
   async function cleanIfDue(){await ready;if(!identityReady||playing||!document.querySelector('#grid')||document.hidden||settings.cacheDays==='0')return;const days=Number(settings.cacheDays);let last;try{last=Number(localStorage.getItem(key('cache-last-clean')));if(!last){localStorage.setItem(key('cache-last-clean'),String(Date.now()));return;}}catch{return;}if(Date.now()-last>=days*86400000){try{await clearCache();}catch{}}}
-  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade4',assets);document.head.append(theme);
+  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade5',assets);document.head.append(theme);
   const dialog=document.createElement('dialog');dialog.id='arcadeSettings';dialog.setAttribute('aria-label','游戏厅设置');document.body.append(dialog);let previous,resume=false;
   const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
-  const labels={filter:'默认滤镜',strength:'默认效果强度',frame:'默认机台遮罩',mask:'默认屏幕纹理',cheats:'金手指功能',fullscreen:'开始游戏时全屏',resume:'继续上次游玩',autoSave:'自动保存继续点',cacheDays:'定期清理缓存',inputStyle:'操作图标风格'};
-  const names={filter:['原始像素','柔和 · 像素平滑','老电视 · CRT'],strength:['轻','中','浓'],frame:['关闭 · 最大画面','木纹机台','奶白机台'],mask:['关闭','扫描线','荫罩'],cheats:['允许手动开启，默认不启用效果','关闭金手指功能'],fullscreen:['开启','关闭'],resume:['有继续点时提供选择','不显示继续选项'],autoSave:['开启 · 每 3 分钟保存一个继续点','关闭'],cacheDays:['不自动清理','每天','每 7 天','每 30 天'],inputStyle:['自动识别当前设备','键盘','Xbox','PlayStation','任天堂','通用手柄','街机摇杆']};
+  const labels={filter:'默认滤镜',strength:'默认效果强度',frame:'默认机台遮罩',mask:'默认屏幕纹理',cheats:'金手指功能',fullscreen:'开始游戏时全屏',resume:'继续上次游玩',autoSave:'自动保存继续点',cacheDays:'定期清理缓存',inputStyle:'操作图标风格',uiSound:'操作音效',uiVolume:'操作音量'};
+  const names={filter:['原始像素','柔和 · 像素平滑','老电视 · CRT'],strength:['轻','中','浓'],frame:['关闭 · 最大画面','木纹机台','奶白机台'],mask:['关闭','扫描线','荫罩'],cheats:['允许手动开启，默认不启用效果','关闭金手指功能'],fullscreen:['开启','关闭'],resume:['有继续点时提供选择','不显示继续选项'],autoSave:['开启 · 每 3 分钟保存一个继续点','关闭'],cacheDays:['不自动清理','每天','每 7 天','每 30 天'],uiSound:['开启','关闭'],uiVolume:['10% · 很轻','20% · 轻','35%','50%','75%','100%'],inputStyle:['自动识别当前设备','键盘','Xbox','PlayStation','任天堂','通用手柄','街机摇杆']};
   function picturePreview(){
     const preview=make('figure','','settings-preview');preview.id='settingsPreview';preview.setAttribute('aria-label','全局画面效果预览');
     const cabinet=make('div','','preview-cabinet'),marquee=make('div','PIXEL CLUB','preview-marquee'),screen=make('div','','preview-screen'),canvas=make('canvas'),glass=make('div','','preview-glass'),deck=make('div','●　●　●　 ━','preview-deck');
@@ -72,9 +72,9 @@
     const closeIcon=make('button','×','settings-close');closeIcon.type='button';closeIcon.setAttribute('aria-label','关闭游戏厅设置');closeIcon.onclick=()=>dialog.close();dialog.prepend(closeIcon);
     const preview=picturePreview();dialog.append(preview);
     const status=make('p','','settings-status');status.setAttribute('role','status');
-    for(const [title,keys] of [['画面与辅助',['filter','strength','frame','mask','cheats']],['启动与输入',['fullscreen','resume','autoSave','inputStyle']],['缓存维护',['cacheDays']]]){
+    for(const [title,keys] of [['画面与辅助',['filter','strength','frame','mask','cheats']],['启动与输入',['fullscreen','resume','autoSave','inputStyle']],['声音',['uiSound','uiVolume']],['缓存维护',['cacheDays']]]){
       const section=make('section','','settings-section');section.append(make('h3',title));
-      for(const name of keys){const label=make('label',labels[name],'settings-field'),select=make('select');select.setAttribute('aria-label',labels[name]);schema[name].forEach((v,i)=>select.add(new Option(names[name][i],v)));select.value=settings[name];select.onchange=()=>{const old=settings.cacheDays;update({[name]:select.value});preview.refresh();if(name==='cacheDays'&&old==='0')try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}status.textContent=persisted?'已保存。游戏内已有单独画面设置时，可选择「使用全局默认」。':'浏览器无法保存，设置仅本次有效。';};label.append(select);section.append(label);}dialog.append(section);
+      for(const name of keys){const label=make('label',labels[name],'settings-field'),select=make('select');select.setAttribute('aria-label',labels[name]);schema[name].forEach((v,i)=>select.add(new Option(names[name][i],v)));select.value=settings[name];select.onchange=()=>{const old=settings.cacheDays;update({[name]:select.value});preview.refresh();if(name==='cacheDays'&&old==='0')try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}status.textContent=persisted?'已保存。游戏内已有单独画面设置时，可选择「使用全局默认」。':'浏览器无法保存，设置仅本次有效。';};label.append(select);section.append(label);}if(title==='声音'){const test=make('button','试听操作音');test.type='button';test.dataset.sound='none';test.onclick=()=>{status.textContent=settings.uiSound==='off'?'音效已关闭，请先开启。':window.ArcadeSound?.preview()?'正在试听：移动、确认、返回、启动、存档成功与失败。':'请先点击页面或按键，浏览器允许声音后再试听。';};section.append(test,make('p','首次点击页面或按键后启用声音。默认低音量，长按移动限频；游戏画面内的动作不播放大厅操作音，自动存档成功保持安静。','ui-muted'));}dialog.append(section);
     }
     dialog.append(make('p','浏览器不允许自动进入全屏时，会先填满当前窗口。继续点按游戏与核心分别保存，启动约 3 秒后建立首个继续点，之后约每 3 分钟更新一次；使用「返回大厅」也会尝试保存。继续点不替代重要的手动存档。','ui-muted'));
     dialog.append(make('p','缓存清理仅删除可重新下载的 ROM、BIOS 和核心缓存，不删除存档、继续点、收藏、最近记录或按键设置。浏览器的全局 HTTP 缓存不在此范围内；定期清理只在打开大厅时执行。','ui-muted'));
@@ -86,8 +86,9 @@
   dialog.addEventListener('close',()=>{if(resume)window.EJS_emulator?.play();resume=false;const target=previous?.isConnected?previous:document.querySelector('#padGuide[open] button,#padSettings[open] select');target?.focus();window.dispatchEvent(new CustomEvent('arcade-settings-closed'));});
   dialog.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();dialog.close();}});
   if(!playing){const b=make('button','游戏厅设置','global-settings-button');b.type='button';b.onclick=open;const header=document.querySelector('main>header');if(header)header.append(b);else (document.querySelector('.guide,.support')||document.body).prepend(b);}
-  function resumePoints(saved){const seen=new Set();return [saved,...(Array.isArray(saved?.history)?saved.history:[])].filter(p=>p?.state?.byteLength).sort((a,b)=>b.updatedAt-a.updatedAt).filter(p=>{if(seen.has(p.updatedAt))return false;seen.add(p.updatedAt);return true;}).map(p=>({state:p.state,updatedAt:p.updatedAt,source:p.source||'legacy',core:p.core,src:p.src}));}
+  function resumePoints(saved){const seen=new Set();return [saved,...(Array.isArray(saved?.history)?saved.history:[])].filter(p=>p?.state?.byteLength).sort((a,b)=>b.updatedAt-a.updatedAt).filter(p=>{if(seen.has(p.updatedAt))return false;seen.add(p.updatedAt);return true;}).map(p=>({state:p.state,updatedAt:p.updatedAt,source:p.source||'legacy',core:p.core,src:p.src,thumbnail:p.thumbnail}));}
   const resumeLabel=p=>(p.source==='manual'?'手动存档':p.source==='auto'?'自动存档':'旧继续点')+' · '+new Date(p.updatedAt).toLocaleString('zh-CN');
-  window.ArcadePreferences={ready,get:()=>({...settings}),update,key,gameKey,open,progress,resumePoints,resumeLabel,cacheBytes,clearCache};
+  function resumePreview(){const figure=make('figure','','resume-preview'),image=make('img'),empty=make('span','此存档暂无画面预览','resume-preview-empty'),caption=make('figcaption');image.hidden=true;image.decoding='async';figure.append(image,empty,caption);image.onerror=()=>{image.hidden=true;empty.hidden=false;};figure.update=point=>{const valid=typeof point?.thumbnail==='string'&&point.thumbnail.length<100000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(point.thumbnail);image.hidden=!valid;empty.hidden=!!valid;if(valid){image.src=point.thumbnail;image.alt=resumeLabel(point)+'的游戏画面';}else image.removeAttribute('src');caption.textContent=point?resumeLabel(point):'选择一份存档查看画面';};figure.update(null);return figure;}
+  window.ArcadePreferences={ready,get:()=>({...settings}),update,key,gameKey,open,progress,resumePoints,resumeLabel,resumePreview,cacheBytes,clearCache};
   ready.then(()=>{cleanIfDue();window.dispatchEvent(new CustomEvent('arcade-preferences-ready'));});setInterval(cleanIfDue,60000);
 })();

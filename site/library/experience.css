@@ -72,6 +72,6 @@ body:has(#game) #padGuide[data-experience=true]::backdrop{background:#03060335}
 body:has(#game) #padGuide[data-experience=true]>button{border-color:#ffffff1c;background:#d0ef880b;border-radius:10px}
 body:has(#game) #padGuide[data-experience=true]>button:hover{background:#d0ef8820}
 body:has(#game) header{background:#151913;border-bottom:1px solid #d0ef881a;color:#eaf0e3}
-body:has(#game) #playerLaunch{background:radial-gradient(ellipse at 50% 0,#35432b,#10150f 75%)}
+body:has(#game) #playerLaunch{background:linear-gradient(180deg,#08100755,#081007cf)}
 body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef8820;border-radius:24px;background:#151c13bb;box-shadow:0 32px 100px #0005}
 @media(max-width:600px){body:has(#game) #padGuide[data-experience=true]{padding:24px 20px}body:has(#game) #playerLaunch .launch-card{padding:20px}.arcade-wing span,.arcade-wing small{visibility:hidden}}

@@ -4,9 +4,9 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
-v1.1.3：新增清晰的手柄启动页（A 开始、B 返回、投币开局说明）；游戏页改为紧凑布局，检测信息收进设置；统一游戏菜单提供全屏、存读档、返回大厅和玩家按键设置。标准手柄优先分配，补齐多人默认按键，修复菜单输入穿透及控制器拔插索引问题。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，解压后按下方步骤部署；已有安装拉取最新源码后重新构建容器。
+v1.2.0：新增复古机台与滤镜、中文金手指指引、全局默认设置、可选历史存档与缩略图、低音量操作音、提前适配横竖屏比例和海报入场动画；修复多人手柄与选择框导航，统一设备图标和页面材质。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，已有安装请按 [更新部署指南](docs/update.md) 保留配置与存档并重新构建容器。
 
-[观看本次简短更新说明视频](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
+[观看此前版本的更新演示（v1.1.2）](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
 
 中文游戏库、分类搜索、封面与视频预览、收藏、最近游玩。打开浏览器即可游玩，无需续映账号。适合飞牛 fnOS，也可部署在能运行 Docker 的 Linux 主机上。
 
@@ -18,7 +18,7 @@ v1.1.3：新增清晰的手柄启动页（A 开始、B 返回、投币开局说�
 
 宣传片采用实际界面录制与文字提示，配轻背景音乐，无配音和赞助码，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
 
-main 分支更新（尚未发布新的 Release）：统一界面与设备图标，新增全局画面默认设置、机台遮罩、中文金手指指引、默认全屏、可选历史进度恢复与缓存维护，并修复启动／插拔时的手柄分配。使用方法见 [设置与维护](docs/settings.md)。**已有安装如何升级、如何安装金手指、如何保留存档与回退，见 [更新部署指南](docs/update.md)。** [下一版本发布说明草稿](docs/release-next.md)尚未发布。
+[设置与维护](docs/settings.md)介绍声音试听、存档缩略图、历史进度恢复和缓存维护；[v1.2.0 发布说明](docs/release-v1.2.0.md)包含完整变化与升级步骤。
 
 ## 快速部署
 

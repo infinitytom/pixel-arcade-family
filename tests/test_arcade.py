@@ -49,6 +49,16 @@ class CollectionTests(unittest.TestCase):
         self.assertEqual([g['title'] for g in result['games']], ['ok'])
         self.assertEqual(len(result['warnings']), 1)
 
+    def test_screen_ratio_before_core_start(self):
+        for name in ['1942', 'DINO', 'darius', 'custom']:
+            (self.root / (name + '.zip')).write_bytes(b'rom')
+        (self.root / 'gamelist.xml').write_text('<gameList><game><path>custom.zip</path><aspectratio>3/4</aspectratio></game></gameList>')
+        games = {g['filename']: g for g in scan(self.root)['games']}
+        self.assertEqual(games['1942.zip']['aspect'], .75)
+        self.assertAlmostEqual(games['DINO.zip']['aspect'], 4/3, places=5)
+        self.assertEqual(games['darius.zip']['aspect'], 4)
+        self.assertEqual(games['custom.zip']['aspect'], .75)
+
     def test_xml_cannot_reference_parent(self):
         (self.root / 'ok.zip').write_bytes(b'rom')
         (self.root / 'gamelist.xml').write_text('<gameList><game><path>../ok.zip</path><name>bad</name></game></gameList>')

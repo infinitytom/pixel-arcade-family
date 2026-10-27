@@ -37,7 +37,7 @@ class ArcadeServer(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = 'PixelArcade/1.1.3'
+    server_version = 'PixelArcade/1.2.0'
 
     def do_HEAD(self):
         self.serve(head=True)

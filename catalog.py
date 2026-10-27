@@ -4,10 +4,29 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 import os
 import re
+import json
+from functools import lru_cache
 import xml.etree.ElementTree as ET
 
 CORES = {'fbneo', 'mame2003_plus', 'fbalpha2012_cps1', 'fbalpha2012_cps2'}
 BIOS = {'neogeo.zip', 'pgm.zip', 'uni-bios.zip', 'collection-bios.zip'}
+
+
+@lru_cache(maxsize=1)
+def screen_layouts():
+    try:
+        return json.loads((Path(__file__).parent / 'site/library/game-layouts.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+
+
+def parse_aspect(value):
+    try:
+        parts = re.split(r'[:/]', value.strip())
+        ratio = float(parts[0]) / float(parts[1]) if len(parts) == 2 else float(value)
+        return round(ratio, 6) if .2 <= ratio <= 5 else None
+    except (ValueError, ZeroDivisionError, TypeError):
+        return None
 
 
 def public_file(root, path):
@@ -65,6 +84,9 @@ def scan(root, default_core='fbneo'):
                         [('title', 'name'), ('description', 'desc'),
                          ('publisher', 'publisher'), ('aliases', 'sortname')]}
                 item['title'] = re.sub(r'^[A-Za-z0-9]+\s*-\s*', '', item['title'])
+                aspect = parse_aspect(node.findtext('aspectratio', ''))
+                if aspect:
+                    item['aspect'] = aspect
                 game_rel = rom.relative_to(xml.parent)
                 folders = [part for part in game_rel.parts[:-1] if part not in CORES]
                 if folders:
@@ -95,6 +117,10 @@ def scan(root, default_core='fbneo'):
         item.update(id=rel.as_posix(), title=item.get('title') or rom.stem,
                     filename=rom.name, category=item.get('category') or (rel.parts[-2] if len(rel.parts) > 1 else '未分类'),
                     rom=url(rom), bios=url(bios) if bios else '', core=core)
+        layouts = screen_layouts()
+        aspect = item.get('aspect') or layouts.get(core, {}).get(rom.stem.lower()) or layouts.get('fbneo', {}).get(rom.stem.lower()) or layouts.get('mame2003_plus', {}).get(rom.stem.lower())
+        if aspect:
+            item['aspect'] = aspect
         games.append(item)
     return {'games': games, 'categories': dict(Counter(g['category'] for g in games)),
             'warnings': warnings, 'source': '本机挂载目录'}

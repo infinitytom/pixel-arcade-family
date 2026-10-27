@@ -17,12 +17,15 @@
     strength:[['light','轻 · 保留清晰度'],['balanced','中 · 日常游玩'],['strong','浓 · 复古氛围']]
   };
   let picture = {...defaults}, storageOK = true, appliedEmulator = null, appliedShader='', manifest = null, comparison=false, previewURL=null, previewGeneration=0, snapshotBytes=null, capturePromise=Promise.resolve();
+  const validRatio=n=>Number.isFinite(n)&&n>=.2&&n<=5;
+  let preloadRatio=validRatio(Number(params.get('aspect')))?Number(params.get('aspect')):4/3,ratioKey='',lastMeasured=0;
   try {const saved = JSON.parse(localStorage.getItem(key));for(const k in defaults)if(choices[k].some(([v])=>v===saved?.[k]))picture[k]=saved[k];} catch {}
-  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet3',assets);document.head.append(style);
+  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet4',assets);document.head.append(style);
   const stage = document.querySelector('#playerStage');
   const decor = document.createElement('div');decor.id='arcadeDecoration';decor.setAttribute('aria-hidden','true');
   decor.innerHTML='<div class="arcade-cabinet"><div class="cabinet-marquee"><i></i><div><small>像素放映厅</small><strong>VIDEO ARCADE</strong></div><i></i></div><div class="cabinet-bezel"><span class="bezel-caption">HIGH SCORE · ONE MORE ROUND</span><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i></div><div class="cabinet-deck"><div class="deck-player"><span>1 PLAYER</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div><div class="deck-player"><span>2 PLAYERS</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div></div><div class="cabinet-coins"><span>请投入代币<br><small>INSERT COIN</small></span><i></i><i></i><span>再来一局<br><small>PLAY AT HOME</small></span></div></div><img class="arcade-preview" alt="" hidden><div class="arcade-glass"></div><div class="arcade-mask"></div>';
   stage.append(decor);
+  decor.style.visibility='hidden';
   decor.querySelector('.arcade-cabinet').insertAdjacentHTML('afterbegin','<div class="cabinet-side side-left"></div><div class="cabinet-side side-right"></div>');
   decor.insertAdjacentHTML('afterbegin','<div class="arcade-neighbor neighbor-left"><b>GAME CENTER</b><i></i><span>INSERT COIN</span></div><div class="arcade-neighbor neighbor-right"><b>VIDEO GAME</b><i></i><span>PLAYER 1 · PLAYER 2</span></div>');
   const shaderNames={original:'disabled',soft:'2xScaleHQ.glslp',crt:'crt-easymode.glslp'};
@@ -57,10 +60,10 @@
     previousReady?.();
   };
   function geometry() {
-    const gm=window.EJS_emulator?.gameManager;
-    let ratio=4/3;
-    try {ratio=gm?.getVideoDimensions('aspect')||ratio;} catch {}
-    if(!Number.isFinite(ratio)||ratio<=0)ratio=4/3;
+    const em=window.EJS_emulator,gm=em?.gameManager;
+    let ratio=preloadRatio;
+    try {const measured=em?.started?gm?.getVideoDimensions('aspect'):null;if(validRatio(measured)){ratio=measured;if(ratioKey&&Math.abs(measured-lastMeasured)>.001){lastMeasured=measured;localStorage.setItem(ratioKey,String(measured));}preloadRatio=measured;}} catch {}
+    stage.dataset.screenAspect=String(ratio);
     const w=stage.clientWidth,h=stage.clientHeight,cabinet=picture.frame!=='none';
     const edge=cabinet?Math.max(10,Math.min(25,w*.025)):0;
     const marquee=cabinet?Math.max(36,Math.min(72,h*.10)):0;
@@ -91,7 +94,7 @@
   }
   function save() {try{localStorage.setItem(key,JSON.stringify(picture));storageOK=true;}catch{storageOK=false;}apply();}
   new ResizeObserver(geometry).observe(stage);
-  setInterval(()=>{const em=window.EJS_emulator;if(em?.started&&appliedEmulator!==em)apply();},700);
+  setInterval(()=>{const em=window.EJS_emulator;if(em?.started){if(appliedEmulator!==em)apply();else geometry();}},700);
   apply();
   window.addEventListener('arcade-preferences-changed',()=>{try{if(localStorage.getItem(key))return;}catch{}const global=window.ArcadePreferences?.get();if(!global)return;for(const name of ['filter','frame','mask','strength'])picture[name]=global[name];apply();if(container?.open&&container.querySelector('[aria-label="画面滤镜"]'))picturePage();});
   function clearPreview() {
@@ -211,6 +214,13 @@
   }
   function cheatPage() {clearPreview();page('金手指','按当前游戏和模拟核心显示可用项目。');cheats(container);button(container,'继续游戏（B / Esc）',()=>container.close());button(container,'← 画面与边框',picturePage);button(container,'← 返回游戏菜单',back);}
   window.ArcadeExperience={
+    layout:geometry,
+    async thumbnail(){
+      const em=window.EJS_emulator;if(!em?.canvas?.width)return null;let bitmap=null;
+      try{await capturePromise;let source=em.canvas;if(em.paused&&snapshotBytes?.byteLength){bitmap=await createImageBitmap(new Blob([snapshotBytes],{type:'image/png'}));source=bitmap;}
+        const canvas=document.createElement('canvas');canvas.width=256;canvas.height=192;const c=canvas.getContext('2d');c.fillStyle='#10150f';c.fillRect(0,0,256,192);const scale=Math.min(256/source.width,192/source.height),w=source.width*scale,h=source.height*scale;c.drawImage(source,(256-w)/2,(192-h)/2,w,h);const data=canvas.toDataURL('image/jpeg',.68);return data.length<100000?data:null;
+      }catch{return null;}finally{bitmap?.close();}
+    },
     pauseForPreview(em) {
       // Capture a stock-shader frame inside RAF, before WebGL discards its buffer.
       // Finish the current display frame, then pause; never restore a save state.
@@ -230,6 +240,8 @@
     open(node,onBack,tab='picture'){container=node;back=()=>{clearPreview();onBack();};if(!node.dataset.previewBound){node.addEventListener('close',clearPreview);node.dataset.previewBound='true';}(tab==='cheats'?cheatPage:picturePage)();container.querySelector('select,button')?.focus();},
     async prepare() {
       await window.ArcadePreferences?.ready;
+      try{ratioKey=window.ArcadePreferences.key('video:'+core+':'+new URL(params.get('src'),location.origin).pathname);const learned=Number(localStorage.getItem(ratioKey));if(validRatio(learned))preloadRatio=learned;else if(!validRatio(Number(params.get('aspect')))){const response=await fetch(new URL('game-layouts.json',assets),{signal:AbortSignal.timeout(3000)});if(response.ok){const layouts=await response.json(),ratio=layouts[core]?.[rom.toLowerCase()]||layouts.fbneo?.[rom.toLowerCase()]||layouts.mame2003_plus?.[rom.toLowerCase()];if(validRatio(ratio))preloadRatio=ratio;}}}catch{}
+      geometry();decor.style.visibility='';
       if(window.ArcadePreferences){const previousKey=key;key=window.ArcadePreferences.gameKey(core,params.get('src'));const global=window.ArcadePreferences.get();for(const name of ['filter','frame','mask','strength'])picture[name]=global[name];try{const local=localStorage.getItem(key),old=!local?localStorage.getItem(previousKey):null;const saved=JSON.parse(local||old||'null');for(const name of ['filter','frame','mask','strength'])if(choices[name].some(([v])=>v===saved?.[name]))picture[name]=saved[name];if(old){localStorage.setItem(key,old);localStorage.removeItem(previousKey);}}catch{}apply();if(global.cheats==='disabled')return;}
       try {
         const response=await fetch(new URL('cheats/manifest.json',assets),{signal:AbortSignal.timeout(5000)});if(!response.ok)return;

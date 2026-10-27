@@ -74,3 +74,11 @@ CI 状态可在 [Actions](https://github.com/infinitytom/pixel-arcade-family/act
 - 原有 `check_gamepad.cjs`、`check_player.cjs`、`check_experience.cjs`、`check_preferences.cjs` 全部通过，后端 10 项单元测试通过。
 - 账号版 `public-account/check_preferences.cjs` 通过：新增大厅继续链接包含正确的 `/arcade/play.html`、ROM 和 BIOS 前缀，账号偏好与继续点隔离保持有效。
 - 本地检查使用浏览器模拟手柄和实际模拟器核心；PS5 实物操作需用户上线后确认。`20-ui-repairs.sh` 已部署完成：家庭版与账号版共 22 个文件部署前后 SHA-256 校验通过，服务 running/healthy，完成标记 `__ARCADE_UI_REPAIRS_DEPLOY_OK__`。备份目录 `/vol2/1000/emulatorjs/site/.rollback/ui-repairs-20261027-20261027-214024`。
+
+## v1.2.0 本地发布检查（2026-10-27）
+
+- `check_sounds.cjs`：六种实际 Web Audio 输出与 WAV 录制；默认低音量、无削波、用户激活、移动限频、关闭／音量持久化、游戏动作不触发大厅声音。
+- `check_presentation.cjs`：无核心时竖屏、横屏、宽屏即有正确比例；官方资料直达链接、加载前后稳定尺寸、海报退场、失败重试、减少动态效果及旧缩略图安全占位。
+- `check_launch_resume.cjs`：真实核心保存 JPEG 缩略图，三个入口跟随所选时间显示同一图像；启动选择的历史状态实际载入，手柄左右／确认可切换，手动保存成功音生效。
+- 后端 11 项单元测试覆盖资料查找与自定义比例；既有导航、多人、滤镜、缓存边界和账号路径检查全部通过。
+- 本机未安装 Docker；镜像构建和空游戏库容器由 GitHub Actions 检查。新版本 Release 的发布不表示用户 NAS 已自动更新，已有 NAS 仍需按更新说明重新构建部署。
