@@ -82,3 +82,5 @@ CI 状态可在 [Actions](https://github.com/infinitytom/pixel-arcade-family/act
 - `check_launch_resume.cjs`：真实核心保存 JPEG 缩略图，三个入口跟随所选时间显示同一图像；启动选择的历史状态实际载入，手柄左右／确认可切换，手动保存成功音生效。
 - 后端 11 项单元测试覆盖资料查找与自定义比例；既有导航、多人、滤镜、缓存边界和账号路径检查全部通过。
 - 本机未安装 Docker；镜像构建和空游戏库容器由 GitHub Actions 检查。新版本 Release 的发布不表示用户 NAS 已自动更新，已有 NAS 仍需按更新说明重新构建部署。
+
+GitHub Actions 默认 runner 升至 Ubuntu 26.04，旧版锁定的 Playwright 不支持其依赖安装；本版本固定为 Ubuntu 24.04，保持原 Playwright 锁定版本不变。

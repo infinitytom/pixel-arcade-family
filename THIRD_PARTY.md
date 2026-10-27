@@ -27,4 +27,4 @@ Offline source patch: after verified extraction, `scripts/fetch_engine.py` repla
 
 `site/library/game-layouts.json` 仅包含 ROM 集名称与显示宽高比的派生事实，不包含 ROM、原始 XML/DAT、游戏海报或音频。资料由 `scripts/fetch_layouts.py` 从官方 [MAME 2003 Plus metadata](https://github.com/libretro/mame2003-plus-libretro/blob/master/metadata/mame2003-plus.xml) 和 [libretro/FBNeo DAT](https://github.com/libretro/FBNeo/tree/master/dats) 提取，原始地址及 SHA-256 保留在 JSON 的 sources 字段。游戏资源及上游原始数据库仍遵循各自条款。
 
-操作音由本项目的 `sounds.js` 用 Web Audio 三角波与音量包络原创合成，不使用外部采样或录音。发布页的试听 WAV 为同一程序实际输出的录制。
+操作音由本项目的 `sounds.js` 用 Web Audio 三角波与音量包络原创合成，不使用外部采样或录音。

@@ -13,7 +13,7 @@
 
 ## 下载与已有安装升级
 
-下载本 Release 的 **pixel-arcade-family-v1.2.0.zip**。ZIP 包含程序源码、部署配置与说明，不含 ROM、BIOS、模拟器二进制或金手指数据库；Docker 构建时按锁定文件取得模拟器，金手指数据按需安装。**ui-sounds-preview-v1.2.0.wav** 是六种操作音的短试听，顺序为移动、确认、返回、启动、存档成功、失败。校验文件为 **SHA256SUMS-v1.2.0.txt**。
+下载本 Release 的 **pixel-arcade-family-v1.2.0.zip**。ZIP 包含程序源码、部署配置与说明，不含 ROM、BIOS、模拟器二进制或金手指数据库；Docker 构建时按锁定文件取得模拟器，金手指数据按需安装。操作音可在新版「游戏厅设置 → 声音」中依次试听。校验文件为 **SHA256SUMS-v1.2.0.txt**。
 
 Git 安装：在原项目目录执行：
 
