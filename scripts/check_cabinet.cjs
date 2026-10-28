@@ -5,7 +5,7 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
  if(pathname.startsWith('/data/')){res.writeHead(200,{'Content-Type':'application/javascript'});res.end('');return;}
  if(pathname.endsWith('private-shaders.json')){res.writeHead(404);res.end();return;}
  const file=path.resolve(site,'.'+pathname);if(!file.startsWith(site+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
- res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp'})[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
+ res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});try{
  for(const [width,height,aspect] of [[1600,1000,4/3],[390,844,.75],[844,390,4]]){
   const page=await browser.newPage({viewport:{width,height}});await page.addInitScript(()=>navigator.getGamepads=()=>[]);

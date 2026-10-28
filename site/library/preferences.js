@@ -64,7 +64,7 @@
     try{const amounts=[];for(const [name,store] of cacheStores)amounts.push(await cacheStore(name,store,true));if(window.caches)for(const name of await caches.keys())if(name.startsWith('pixelarcade-cache-'))await caches.delete(name);try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}return amounts.reduce((a,b)=>a+b,0);}finally{cleaning=false;}
   }
   async function cleanIfDue(){await ready;if(!identityReady||playing||!document.querySelector('#grid')||document.hidden||settings.cacheDays==='0')return;const days=Number(settings.cacheDays);let last;try{last=Number(localStorage.getItem(key('cache-last-clean')));if(!last){localStorage.setItem(key('cache-last-clean'),String(Date.now()));return;}}catch{return;}if(Date.now()-last>=days*86400000){try{await clearCache();}catch{}}}
-  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade14',assets);document.head.append(theme);
+  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade15',assets);document.head.append(theme);
   const dialog=document.createElement('dialog');dialog.id='arcadeSettings';dialog.setAttribute('aria-label','游戏厅设置');document.body.append(dialog);let previous,resume=false;
   const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
   const labels={filter:'默认滤镜',strength:'默认效果强度',frame:'默认机台遮罩',mask:'默认屏幕纹理',cheats:'金手指功能',fullscreen:'开始游戏时全屏',resume:'继续上次游玩',autoSave:'自动保存继续点',cacheDays:'定期清理缓存',inputStyle:'操作图标风格',uiSound:'操作音效',uiVolume:'操作音量'};
@@ -99,7 +99,7 @@
     const syncSection=make('section','','settings-section');syncSection.append(make('h3','账号同步'));
     const syncNote=make('p','','ui-muted');syncNote.id='accountSyncStatus';
     const syncText=()=>{const s=sync?.status();syncNote.textContent=s?.enabled?'账号 '+(s.account||'未连接')+' · '+s.phase+(s.lastSync?' · 上次同步 '+new Date(s.lastSync).toLocaleTimeString('zh-CN'):'')+(s.error?'：'+s.error:''):'本机模式：此入口未启用账号服务。';};syncText();syncSection.append(syncNote);
-    const retry=make('button','立即同步并重试');retry.type='button';retry.disabled=!sync?.status().enabled;retry.onclick=async()=>{retry.disabled=true;try{await sync.retry();}finally{retry.disabled=false;syncText();}};syncSection.append(retry,make('p','收藏、历史、全局及单个游戏画面设置、存档与缩略图随账号保存到 NAS。首次连接会合并本机已有记录；离线修改保留待上传。手柄设备编号和玩家分配保留在本机。手动、自动存档各保留 3 份；单份上限 16 MB，账号云存档上限 512 MB。请确认显示「已同步」后再清除浏览器网站数据。','ui-muted'));dialog.append(syncSection);
+    const retry=make('button','立即同步并重试');retry.type='button';retry.disabled=!sync?.status().enabled;retry.onclick=async()=>{retry.disabled=true;try{await sync.retry();}finally{retry.disabled=false;syncText();}};syncSection.append(retry,make('p','收藏、历史、全局及单个游戏画面设置、存档与缩略图随账号保存到 NAS。首次连接会合并本机已有记录；离线修改保留待上传。手柄设备编号和玩家分配保留在本机。手动、自动存档各保留 3 份；不再设置单份或账号总量配额，大存档按块传输并校验，可在中断后续传。请确认显示「已同步」后再清除浏览器网站数据。','ui-muted'));dialog.append(syncSection);
     const librarySection=make('section','','settings-section');librarySection.append(make('h3','收藏与游玩历史'));
     let records;try{records=libraryRecords();}catch{}
     librarySection.append(make('p','当前入口：'+location.origin+' · '+(scope==='pixelarcade:local:'?'本地浏览器':decodeURIComponent(scope.slice(11,-1)))+'；收藏 '+(records?.favorites.length??'不可用')+' 条，最近游玩 '+(records?.recent.length??'不可用')+' 条。本机保留离线副本；账号入口的同步情况见上方。下载缓存清理会保留记录；浏览器删除网站数据会清除尚未上传的修改和本地备份。导出的收藏历史备份不包含游戏存档。','ui-muted'));

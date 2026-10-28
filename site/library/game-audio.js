@@ -34,11 +34,19 @@
     const load=em.gameManager.loadState;em.gameManager.loadState=function(...args){const result=load.apply(this,args);schedule();return result;};
     schedule();
   }
+  function prepare(mode){
+    if(mode!=='continue'||new URLSearchParams(location.search).get('core')!=='mame2003_plus')return;
+    const em=window.EJS_emulator;if(!em||em.arcadeResumeBoot||typeof em.getCoreSettings!=='function')return;
+    em.arcadeResumeBoot=true;const getSettings=em.getCoreSettings;
+    // MAME's startup notices are frontend UI state, not part of the game state.
+    // They can remain over a restored game and keep its audio paused.
+    em.getCoreSettings=function(){const flags=['mame2003-plus_skip_disclaimer','mame2003-plus_skip_warnings'];return (getSettings.call(this)||'').split('\n').filter(line=>!flags.some(key=>line.trim().startsWith(key+' '))).join('\n')+'\n'+flags.map(key=>key+' = "enabled"').join('\n')+'\n';};
+  }
   function gesture(event){if(event.isTrusted){attach();const em=window.EJS_emulator;if(em&&(contexts(em).some(c=>c.state!=='running')||notice&&!notice.hidden))recover(true);}}
   document.addEventListener('pointerdown',gesture,true);document.addEventListener('keydown',gesture,true);
   window.addEventListener('arcade-resume-restored',schedule);
   window.addEventListener('focus',schedule);document.addEventListener('visibilitychange',()=>{if(document.hidden){generation++;showNotice(false);}else schedule();});
   const watcher=setInterval(()=>{attach();const em=window.EJS_emulator;if(!em?.started||em.paused||document.hidden||!document.hasFocus())return;if(contexts(em).some(c=>c.state!=='running')&&performance.now()-lastAttempt>1500){lastAttempt=performance.now();recover();}},250);
   window.addEventListener('pagehide',()=>{generation++;clearInterval(watcher);showNotice(false);});
-  window.ArcadeGameAudio={recover,attach};
+  window.ArcadeGameAudio={recover,attach,prepare};
 })();

@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const enabled=location.pathname.startsWith('/arcade/'),endpoint='/arcade/sync/';
-  let account=null,prefix='',phase=enabled?'正在连接账号':'本机模式',error='',lastSync=0,busy=null,timer,items=[],games=[],initialized=false,pendingSaves=0,migrationDone=!enabled,operationClock=Date.now();
+  let account=null,prefix='',phase=enabled?'正在连接账号':'本机模式',error='',lastSync=0,busy=null,timer,items=[],games=[],initialized=false,pendingSaves=0,protocol=0,migrationDone=!enabled,operationClock=Date.now();
   const downloaded=new Map(),saveIssues=new Map();
   const uid=()=>crypto.randomUUID(),read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f;}catch{return f;}};
   const canonical=id=>{const match=/^(resume|game):([^:]+):(.*)$/.exec(id);if(!match)return id;try{const u=new URL(match[3],location.origin);return match[1]+':'+match[2]+':'+u.pathname.replace(/^\/arcade\/roms\//,'/roms/')+u.search;}catch{return id;}};
@@ -16,12 +16,14 @@
     const op={kind,id:kind==='picture'?canonical(id):id,value,seed,opId:uid(),createdAt:++operationClock};
     try{localStorage.setItem(prefix+'sync-op:'+op.opId,JSON.stringify(op));if(!seed){phase='待上传';error='';notify();schedule();}return true;}catch{error='待上传记录无法写入本机，请先导出备份';phase='同步未完成';notify();return false;}
   }
-  async function request(path,options={}){
-    const r=await fetch(endpoint+path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(20000),...options,headers:{...options.headers,'X-Arcade-Account':encodeURIComponent(account)}});
+  async function response(path,options={}){
+    const r=await fetch(endpoint+path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(20000),...options,headers:{...options.headers,'X-Arcade-Account':encodeURIComponent(account),'X-Arcade-Sync':'2'}});
     if(!r.ok){let message;try{message=(await r.json()).detail;}catch{}throw Error(typeof message==='string'?message:r.status===401?'登录已失效，请重新登录':'同步暂不可用（'+r.status+'）');}
-    return r.json();
+    return r;
   }
+  async function request(path,options={}){return (await response(path,options)).json();}
   function apply(payload){
+    protocol=payload.protocol||1;
     items=payload.items||[];games=payload.games||[];
     const values=new Map(items.map(x=>[x.kind+'\n'+x.id,x]));
     for(const op of queued()){const id=op.kind+'\n'+op.id;if(!op.seed||!values.has(id))values.set(id,op);}
@@ -38,8 +40,8 @@
     if(changed)window.dispatchEvent(new CustomEvent('arcade-account-data',{detail:{favorites,recent:recent.slice(0,100).map(v=>v[0]),settings}}));
   }
   function saveDB(action,key,value){return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('PixelArcade-sync-v1',1);req.onupgradeneeded=()=>req.result.createObjectStore('pending');req.onerror=()=>reject(req.error);
-    req.onsuccess=()=>{const db=req.result,tx=db.transaction('pending',action==='list'?'readonly':'readwrite'),store=tx.objectStore('pending');let result=[];
+    const req=indexedDB.open('PixelArcade-sync-v1',2);let blocked=false;req.onblocked=()=>{blocked=true;reject(Error('请关闭旧游戏页后重试同步'));};req.onupgradeneeded=()=>{const store=req.result.objectStoreNames.contains('pending')?req.transaction.objectStore('pending'):req.result.createObjectStore('pending');const cursor=store.openCursor();cursor.onsuccess=()=>{const c=cursor.result;if(!c)return;const value=c.value;if(value.point?.state?.byteLength){value.point.state=new Blob([value.point.state]);c.update(value);}c.continue();};};req.onerror=()=>reject(req.error);
+    req.onsuccess=()=>{const db=req.result;if(blocked){db.close();return;}const tx=db.transaction('pending',action==='list'?'readonly':'readwrite'),store=tx.objectStore('pending');let result=[];
       if(action==='list'){const cursor=store.openCursor();cursor.onsuccess=()=>{const c=cursor.result;if(c){if(String(c.key).startsWith(prefix))result.push({key:c.key,...c.value});c.continue();}};}else if(action==='put')store.put(value,key);else store.delete(key);
       tx.oncomplete=()=>{db.close();resolve(result);};tx.onerror=tx.onabort=()=>{db.close();reject(tx.error||Error('待上传存档无法保存'));};};
   });}
@@ -51,21 +53,45 @@
   function report(e,id){if(id&&account){const game=canonical(id);saveIssues.set(game,e.message);try{localStorage.setItem(prefix+'sync-save-error:'+game,JSON.stringify(e.message));}catch{}}error=e.message;phase='同步未完成';notify();}
   async function queueSave(id,value){
     if(!account)return;
-    const game=canonical(id),pending=await saveDB('list');let changed=false,oversized=false;
+    const game=canonical(id),pending=await saveDB('list');let changed=false;
     for(const p of points(value).reverse()){
-      if(p.state.byteLength>16*1024*1024){oversized=true;continue;}const sid=await hash(game,p);if(downloaded.get(game)?.ids.has(sid)||pending.some(q=>q.sid===sid))continue;
-      const point={...p,source:p.source==='auto'?'auto':'manual',sessionId:p.sessionId||'',thumbnail:p.thumbnail||null};const item={opId:uid(),game,point,sid,createdAt:Date.now()};await saveDB('put',prefix+'save:'+sid,item);changed=true;
+      const sid=await hash(game,p);if(downloaded.get(game)?.ids.has(sid)||pending.some(q=>q.sid===sid))continue;
+      const point={...p,state:new Blob([p.state]),source:p.source==='auto'?'auto':'manual',sessionId:p.sessionId||'',thumbnail:p.thumbnail||null};const item={opId:uid(),game,point,sid,createdAt:Date.now()};await saveDB('put',prefix+'save:'+sid,item);changed=true;
     }
     // Unsent points follow the same retention rule as local history.
     const keep=new Set(points(value).map(pointKey));for(const q of pending)if(q.game===game&&!keep.has(pointKey(q.point)))await saveDB('delete',q.key);
-    if(oversized)report(Error('部分存档超过 16 MB，仅保存在本机，请单独导出'),id);else{saveIssues.delete(game);try{localStorage.removeItem(prefix+'sync-save-error:'+game);}catch{}}pendingSaves=(await saveDB('list')).length;if(changed&&!oversized){phase='待上传';notify();schedule();}
+    saveIssues.delete(game);try{localStorage.removeItem(prefix+'sync-save-error:'+game);}catch{}pendingSaves=(await saveDB('list')).length;if(changed){phase='待上传';notify();schedule();}
+  }
+  async function chunkHash(data){const digest=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');}
+  async function upload(q){
+    if(protocol<2)throw Error('同步服务正在更新，请稍后重试或刷新游戏厅');
+    const {state,...point}=q.point,blob=state instanceof Blob?state:new Blob([state]);
+    const begin=await request('uploads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({opId:q.opId,game:q.game,point,size:blob.size})});
+    if(begin.complete)return;
+    let offset=begin.offset;const length=begin.chunkBytes||1048576;
+    while(offset<blob.size){const data=new Uint8Array(await blob.slice(offset,offset+length).arrayBuffer());phase='正在上传存档（'+Math.floor(offset/blob.size*100)+'%）';notify();
+      const next=await request('uploads/'+q.opId,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(60000),body:JSON.stringify({offset,data:encode(data),sha256:await chunkHash(data)})});
+      if(!Number.isSafeInteger(next.offset)||next.offset<=offset||next.offset>blob.size)throw Error('上传进度无效，请重试');offset=next.offset;
+    }
+    await request('uploads/'+q.opId+'/finish',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(120000),body:'{}'});
+  }
+  async function downloadPoint(id,value){
+    if(!value.chunked)return {...value,state:decode(value.state)};
+    if(!Number.isSafeInteger(value.size)||value.size<=0)throw Error('云存档长度无效');
+    const state=new Uint8Array(value.size);let offset=0;
+    while(offset<state.length){phase='正在下载存档（'+Math.floor(offset/state.length*100)+'%）';notify();
+      const r=await response('saves/'+id+'/data?offset='+offset,{signal:AbortSignal.timeout(60000)}),part=new Uint8Array(await r.arrayBuffer());
+      if(part.length!==Math.min(1048576,state.length-offset)||await chunkHash(part)!==r.headers.get('X-Chunk-SHA256'))throw Error('下载分块校验失败，请重试');state.set(part,offset);offset+=part.length;
+    }
+    return {...value,state};
   }
   async function flush(metadataOnly=false){
     if(!initialized)return initialize();if(!account)return;if(busy)return busy;
     busy=(async()=>{phase='正在同步';notify();try{
+      apply(await request('metadata'));
       let ops=queued();while(ops.length){const batch=ops.slice(0,100);const payload=await request('metadata',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operations:batch.map(({storageKey,...op})=>op)})});for(const op of batch)localStorage.removeItem(op.storageKey);apply(payload);ops=queued();}
       if(!metadataOnly&&!migrationDone){await migrateSaves();migrationDone=true;}
-      for(const q of metadataOnly?[]:await saveDB('list')){await request('saves',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({opId:q.opId,game:q.game,point:{...q.point,state:encode(new Uint8Array(q.point.state))}})});await saveDB('delete',q.key);const known=read(prefix+'synced-saves:'+q.game,[]);if(!known.includes(pointKey(q.point)))localStorage.setItem(prefix+'synced-saves:'+q.game,JSON.stringify([...known,pointKey(q.point)].slice(-100)));downloaded.delete(q.game);}
+      for(const q of metadataOnly?[]:await saveDB('list')){await upload(q);await saveDB('delete',q.key);const known=read(prefix+'synced-saves:'+q.game,[]);if(!known.includes(pointKey(q.point)))localStorage.setItem(prefix+'synced-saves:'+q.game,JSON.stringify([...known,pointKey(q.point)].slice(-100)));downloaded.delete(q.game);}
       apply(await request('metadata'));lastSync=Date.now();pendingSaves=(await saveDB('list')).length;phase=saveIssues.size?'同步未完成':!migrationDone?'正在迁移本机存档':pendingSaves?'待上传':'已同步';error=[...new Set(saveIssues.values())].join('；');
     }catch(e){phase=navigator.onLine?'同步未完成':'离线 · 待联网同步';error=e.message;}finally{busy=null;notify();}})();return busy;
   }
@@ -75,7 +101,7 @@
     try{
       const manifest=await request('saves?game='+encodeURIComponent(game)),remote=[],ids=new Set(manifest.points.map(p=>p.id));
       const locals=points(local),byId=new Map();for(const p of locals)byId.set(await hash(game,p),p);
-      for(const p of manifest.points){if(byId.has(p.id))remote.push(byId.get(p.id));else{const value=await request('saves/'+p.id);remote.push({...value,state:decode(value.state)});}}
+      for(const p of manifest.points){if(byId.has(p.id))remote.push(byId.get(p.id));else{const value=await request('saves/'+p.id);remote.push(await downloadPoint(p.id,value));}}
       downloaded.set(game,{ids});
       const pending=await saveDB('list'),knownLocal=new Set(read(prefix+'synced-saves:'+game,[]));
       // Previously acknowledged points pruned on another device must stay pruned.
@@ -89,9 +115,12 @@
     }catch(e){if(local)try{await queueSave(id,local);}catch(queueError){report(queueError,id);}phase='同步未完成';error=e.message;notify();return local;}
   }
   async function migrateSaves(){
-    // Only the signed-in account's pre-existing resume points are migrated.
-    const req=indexedDB.open('PixelArcade-progress-v1');let absent=false;
-    await new Promise((resolve,reject)=>{req.onblocked=()=>reject(Error('请关闭其他旧游戏页后重试存档迁移'));req.onupgradeneeded=()=>{absent=true;req.transaction.abort();};req.onerror=()=>absent?resolve():reject(req.error);req.onsuccess=()=>{const db=req.result;if(absent||!db.objectStoreNames.contains('snapshots')){db.close();resolve();return;}const values=[],tx=db.transaction('snapshots'),c=tx.objectStore('snapshots').openCursor();c.onsuccess=()=>{const cursor=c.result;if(cursor){if(String(cursor.key).startsWith(prefix+'resume:'))values.push([String(cursor.key).slice(prefix.length),cursor.value]);cursor.continue();}};tx.oncomplete=()=>{db.close();resolve(values);};tx.onabort=tx.onerror=()=>{db.close();reject(tx.error||Error('旧存档暂时无法读取'));};};}).then(async values=>{for(const [id,value] of values||[])await mergeSaves(id,value);});
+    // Enumerate keys first; do not materialize every game's state in memory.
+    const keys=await new Promise((resolve,reject)=>{const req=indexedDB.open('PixelArcade-progress-v1');let absent=false;
+      req.onblocked=()=>reject(Error('请关闭其他旧游戏页后重试存档迁移'));req.onupgradeneeded=()=>{absent=true;req.transaction.abort();};req.onerror=()=>absent?resolve([]):reject(req.error);
+      req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains('snapshots')){db.close();resolve([]);return;}const found=[],tx=db.transaction('snapshots'),cursor=tx.objectStore('snapshots').openKeyCursor();cursor.onsuccess=()=>{const c=cursor.result;if(c){if(String(c.key).startsWith(prefix+'resume:'))found.push(c.key);c.continue();}};tx.oncomplete=()=>{db.close();resolve(found);};tx.onerror=()=>{db.close();reject(tx.error);};};
+    });
+    for(const key of keys){const value=await new Promise((resolve,reject)=>{const req=indexedDB.open('PixelArcade-progress-v1');req.onerror=()=>reject(req.error);req.onsuccess=()=>{const db=req.result,tx=db.transaction('snapshots'),r=tx.objectStore('snapshots').get(key);let value;r.onsuccess=()=>value=r.result;tx.oncomplete=()=>{db.close();resolve(value);};tx.onerror=()=>{db.close();reject(tx.error);};};});await mergeSaves(String(key).slice(prefix.length),value);}
   }
   let starting;
   function initialize(){if(starting)return starting;starting=start().finally(()=>{starting=null;});return starting;}

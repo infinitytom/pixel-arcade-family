@@ -12,7 +12,7 @@ v1.4.0 的账号入口可将收藏、最近游玩、全局设置、单个游戏�
 
 收藏按单个游戏增删，保留取消记录；历史合并后最多 100 款。全局设置按选项合并。对同一项目发生冲突时，服务器最后接收到的有效修改生效；离线修改重连后按操作队列上传。不同设备各自的收藏、设置修改不会整表覆盖。存档按游戏、核心、时间及游玩会话区分，来自不同设备的进度合并保留。
 
-单份云存档上限 16 MB，每账号云存档数据上限 512 MB。超限时本地继续点保留，并提示单独导出。按键设备编号、玩家分配、模拟器自身的按键配置、下载缓存和 BIOS 不在同步范围内；缓存仍可手动或定期清理。独立下载的存档文件也不自动上传，需先在游戏中载入并保存一个继续点。
+从 v1.5.0 起不再设置单份 16 MB 或每账号 512 MB 的存档容量限制。新版使用每块 1 MB 的校验分块传输，中断后自动从服务器已确认的位置续传；1 MB 是传输分块大小，不是存档大小上限。实际可用容量取决于 NAS 剩余空间和设备浏览器存储空间。NAS 空间不足时保留本机副本与上传队列，释放空间后重试。每游戏手动、自动各保留最近 3 份的历史规则继续生效。按键设备编号、玩家分配、模拟器自身的按键配置、下载缓存和 BIOS 不在同步范围内；缓存仍可手动或定期清理。独立下载的存档文件也不自动上传，需先在游戏中载入并保存一个继续点。
 
 原有收藏历史 JSON 导出／导入继续可用，导入会合并并进入同步队列；JSON 不含游戏存档。服务器端保存的是当前历史集合，并非无限历史备份。
 
@@ -31,10 +31,10 @@ app.include_router(create_sync_router('/data', session, check_origin))
 
 前端保留在 `/arcade/` 路径并提供 `/arcade/auth/session`，响应 `{"username":"账号名"}`；所有页面在 `preferences.js` 前加载 `account-sync.js`。前端现已支持按账号使用记录键，账号页面构建时仍需正确改写 ROM、资源和页面 URL。已有会话服务的固定 Origin、HttpOnly 登录 cookie 和账号吊销检查仍需保留。
 
-接口：`GET/POST /sync/metadata`、`GET/POST /sync/saves` 和 `GET /sync/saves/{id}`。所有读取和写入均验证会话，并要求 `X-Arcade-Account` 与当前已验证账号一致；此头只用于防止旧页面串号，不是登录凭据。写入另校验 Origin、JSON 和请求体大小；存档读取按服务器鉴权账号隔离。
+接口：`GET/POST /sync/metadata`、`GET/POST /sync/saves` 和 `GET /sync/saves/{id}`。新版另外提供 `POST /sync/uploads`、`POST /sync/uploads/{操作标识}`、`POST /sync/uploads/{操作标识}/finish` 和 `GET /sync/saves/{id}/data?offset=...`，使用 `X-Arcade-Sync: 2` 协商分块协议。旧数据库内的存档可直接读取，无需导出重建；客户端旧的待上传队列也会原地升级。所有读取和写入均验证会话，并要求 `X-Arcade-Account` 与当前已验证账号一致；此头只用于防止旧页面串号，不是登录凭据。写入另校验 Origin、JSON 和请求体大小；存档读取按服务器鉴权账号隔离。
 
-将 `/data` 挂为持久目录。数据文件为 `arcade-sync.sqlite3`，含 SQLite WAL；备份运行中数据库请用 SQLite backup API，或先停止服务再复制数据库及 WAL。升级保留整个数据目录，数据库不位于静态网站或下载缓存中。公开家庭版的 Python 文件服务器不暴露此数据库，也不会自动启用这些接口。
+将 `/data` 挂为持久目录。持久数据包括 `arcade-sync.sqlite3`（含 SQLite WAL）、`sync-files/`（已完成存档）和 `sync-uploads/`（待续传分块），以及既有账号会话数据。备份请先停止账号服务，再复制整个 `/data` 目录，完成后启动服务，确保数据库与文件属于同一时点；只备份 SQLite 已不足以恢复新版存档。临时分块在闲置 7 天后于下一次上传时回收，本机待上传队列仍可重新上传。升级保留整个数据目录，数据库不位于静态网站或下载缓存中。公开家庭版的 Python 文件服务器不暴露此数据库，也不会自动启用这些接口。
 
 ## 开发验证
 
-安装 `requirements-account-test.txt` 后运行 `python -m unittest discover -s tests -v`。启动仅监听回环地址的 `python scripts/sync_test_server.py`，再运行 `node scripts/check_account_sync.cjs`，验证多浏览器、旧数据迁移、离线重试、串号阻止和清除网站数据后的恢复。测试服务使用专用测试 cookie，不能用于真实部署。
+安装 `requirements-account-test.txt` 后运行 `python -m unittest discover -s tests -v`。启动仅监听回环地址的 `python scripts/sync_test_server.py`，再运行 `node scripts/check_account_sync.cjs`，验证超过 16 MB 的存档、超过旧总配额的账号、分块校验、断点续传、多浏览器、旧数据迁移、离线重试、串号阻止和清除网站数据后的恢复。测试服务使用专用测试 cookie，不能用于真实部署。

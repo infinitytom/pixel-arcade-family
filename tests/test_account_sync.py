@@ -74,20 +74,71 @@ class AccountSyncTests(unittest.TestCase):
         stamps = [p['updatedAt'] for p in self.store.saves('alice', 'resume:fbneo:/roms/dino.zip')['points']]
         self.assertEqual(stamps, [102, 100])
 
-    def test_quota_retention_and_transaction_rollback(self):
-        from unittest.mock import patch
-        with patch('account_sync.QUOTA', 600):
-            for stamp in range(100, 105):
-                self.store.save('alice', self.point(stamp))
-            self.assertEqual(len(self.store.saves('alice', 'resume:fbneo:/roms/dino.zip')['points']), 3)
-            with self.assertRaises(HTTPException) as full:
-                self.store.save('alice', self.point(200, 'auto'))
-            self.assertEqual(full.exception.status_code, 413)
-            self.assertEqual(len(self.store.saves('alice', 'resume:fbneo:/roms/dino.zip')['points']), 3)
-        invalid = self.point(300)
-        invalid['point']['state'] = 'not-base64!'
-        with self.assertRaises(HTTPException):
-            self.store.save('alice', invalid)
+    def upload(self, username, stamp, data, game='resume:fbneo:/roms/large.zip'):
+        import hashlib
+        payload = self.point(stamp)
+        payload['game'] = game
+        payload['point'].pop('state')
+        payload['size'] = len(data)
+        begin = self.store.begin(username, payload)
+        if begin.get('complete'):
+            return begin['id']
+        offset = begin['offset']
+        while offset < len(data):
+            part = data[offset:offset+1024*1024]
+            result = self.store.chunk(username, payload['opId'], {'offset':offset,
+                'data':base64.b64encode(part).decode(), 'sha256':hashlib.sha256(part).hexdigest()})
+            offset = result['offset']
+        return self.store.finish(username, payload['opId'])['id']
+
+    def test_large_chunked_state_and_old_database_download(self):
+        import hashlib
+        data = b'large-save-pattern' * 1048576  # More than the previous 16 MB cap.
+        sid = self.upload('alice', 301, data)
+        self.assertGreater(self.store.point_info('alice', sid)['size'], 16*1024*1024)
+        actual = b''.join(self.store.read_chunk('alice', sid, n) for n in range(0, len(data), 1048576))
+        self.assertEqual(hashlib.sha256(actual).digest(), hashlib.sha256(data).digest())
+        old = self.store.save('alice', self.point(302))['id']
+        self.assertEqual(self.store.read_chunk('alice', old, 0), bytes([302 % 256])*200)
+        self.assertEqual(self.store.metadata('alice')['protocol'], 2)
+
+    def test_chunk_retry_resume_account_isolation_and_incomplete_commit(self):
+        import hashlib
+        data = b'resume-me' * 200000
+        payload = self.point(401);payload['point'].pop('state');payload['size']=len(data)
+        begin=self.store.begin('alice',payload)
+        chunk=data[:1048576]
+        block={'offset':0,'data':base64.b64encode(chunk).decode(),'sha256':hashlib.sha256(chunk).hexdigest()}
+        self.assertEqual(self.store.chunk('alice',payload['opId'],block)['offset'],len(chunk))
+        self.assertEqual(self.store.chunk('alice',payload['opId'],block)['offset'],len(chunk))
+        self.store=SyncStore(self.path)
+        self.assertEqual(self.store.begin('alice',payload)['offset'],len(chunk))
+        with self.assertRaises(HTTPException):self.store.finish('alice',payload['opId'])
+        with self.assertRaises(HTTPException):self.store.chunk('bob',payload['opId'],block)
+        bad={**block,'sha256':'0'*64}
+        with self.assertRaises(HTTPException):self.store.chunk('alice',payload['opId'],bad)
+        rest=data[len(chunk):]
+        self.store.chunk('alice',payload['opId'],{'offset':len(chunk),'data':base64.b64encode(rest).decode(),'sha256':hashlib.sha256(rest).hexdigest()})
+        sid=self.store.finish('alice',payload['opId'])['id']
+        self.assertTrue(self.store.finish('alice',payload['opId'])['ok'])
+        self.assertTrue(self.store.begin('alice',payload)['complete'])
+        with self.assertRaises(HTTPException):self.store.read_chunk('bob',sid,0)
+
+    def test_no_account_size_quota_and_file_retention(self):
+        import json
+        # A sparse file represents an account already above the old total quota.
+        fake=self.store.files/'existing.bin'
+        with fake.open('wb') as out:out.truncate(513*1024*1024)
+        with self.store.connect() as db:
+            db.execute('INSERT INTO saves(username,id,game,stamp,source,session,metadata,state,revision,file,size) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+                ('alice','f'*64,'resume:fbneo:/roms/existing.zip',1,'manual','old',json.dumps({}),b'',1,'existing.bin',fake.stat().st_size))
+        ids=[self.upload('alice',n,b'new save',game='resume:fbneo:/roms/retain.zip') for n in range(501,506)]
+        points=self.store.saves('alice','resume:fbneo:/roms/retain.zip')['points']
+        self.assertEqual(len(points),3)
+        self.assertNotIn(ids[0],[p['id'] for p in points])
+        self.assertEqual(len(list(self.store.files.rglob('*.bin'))),4)
+        invalid=self.point(300);invalid['point']['state']='not-base64!'
+        with self.assertRaises(HTTPException):self.store.save('alice',invalid)
 
     def test_router_requires_session_origin_account_binding_and_valid_payload(self):
         app = FastAPI()
@@ -109,6 +160,20 @@ class AccountSyncTests(unittest.TestCase):
         self.assertEqual(client.post('/sync/metadata', headers=headers, json={'operations':[self.op(value='invalid')]}).status_code, 400)
         self.assertEqual(client.post('/sync/saves', headers=headers, json=self.point(100)).status_code, 200)
         self.assertEqual(client.post('/sync/saves', headers=headers, json=[]).status_code, 400)
+        import hashlib
+        manifest=self.point(777);raw=base64.b64decode(manifest['point'].pop('state'));manifest['size']=len(raw)
+        self.assertEqual(client.post('/sync/uploads',headers={**headers,'Origin':'https://evil.test'},json=manifest).status_code,403)
+        start=client.post('/sync/uploads',headers=headers,json=manifest);self.assertEqual(start.status_code,200)
+        oid=manifest['opId'];sid=start.json()['id']
+        block={'offset':0,'data':base64.b64encode(raw).decode(),'sha256':hashlib.sha256(raw).hexdigest()}
+        self.assertEqual(client.post('/sync/uploads/'+oid,headers={**headers,'X-Arcade-Account':'bob'},json=block).status_code,409)
+        self.assertEqual(client.post('/sync/uploads/'+oid,headers=headers,json=block).json()['offset'],len(raw))
+        self.assertEqual(client.post('/sync/uploads/'+oid+'/finish',headers=headers,json={}).status_code,200)
+        info=client.get('/sync/saves/'+sid,headers={**headers,'X-Arcade-Sync':'2'}).json();self.assertTrue(info['chunked'])
+        download=client.get('/sync/saves/'+sid+'/data?offset=0',headers=headers)
+        self.assertEqual(download.content,raw);self.assertEqual(download.headers['x-chunk-sha256'],hashlib.sha256(raw).hexdigest())
+        self.assertEqual(client.get('/sync/saves/'+sid+'/data?offset=0').status_code,401)
+
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
-v1.4.3：修复大厅控制器选中后的导航与两手柄接管；保留可跳过的走近机台入场动画；继续存档和减少动态效果模式直接进入。按真实街机结构重做前伸斜面操作台、厚前沿与下方机身，统一摇杆中心轴并加入街机厅环境背景，保持正面屏幕与圆角玻璃；新增可接入现有鉴权服务的账号同步模块，保存收藏、历史、画面设置与存档缩略图。家庭版默认仍为本机模式，账号服务接入见 [账号同步说明](docs/account-sync.md)。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，已有安装请按 [更新部署指南](docs/update.md) 保留配置和数据。
+v1.5.0：账号同步解除单份 16 MB、每账号 512 MB 配额，支持校验分块和断点续传；机台加入轻微泛黄与磨损，保留立体操作台、正面圆角屏幕和靠近动画。收藏、历史、设置和存档缩略图可接入账号同步；家庭版默认仍为本机模式。接入与完整数据目录备份见 [账号同步说明](docs/account-sync.md)。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，已有安装按 [更新部署指南](docs/update.md) 保留配置和数据。
 
 [观看此前版本的更新演示（v1.1.2）](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
 
@@ -18,7 +18,7 @@ v1.4.3：修复大厅控制器选中后的导航与两手柄接管；保留可�
 
 宣传片采用实际界面录制与文字提示，配轻背景音乐，无配音和赞助码，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
 
-[设置与维护](docs/settings.md)介绍声音试听、存档缩略图、历史进度恢复和缓存维护；[v1.4.3 发布说明](docs/release-v1.4.3.md)包含完整变化与升级步骤。
+[设置与维护](docs/settings.md)介绍声音试听、存档缩略图、历史进度恢复和缓存维护；[v1.5.0 发布说明](docs/release-v1.5.0.md)包含完整变化与升级步骤。
 
 ## 快速部署
 

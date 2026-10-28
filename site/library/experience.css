@@ -143,3 +143,15 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 .stick-shaft{position:absolute;left:calc(var(--stick-ball)*-.075);bottom:0;width:calc(var(--stick-ball)*.15);height:calc(var(--stick-ball)*.95);border-radius:2px;background:linear-gradient(90deg,#343a38,#d4d8cd 40%,#929c93 60%,#333e39);box-shadow:1px 0 1px #0005}
 .stick-ball{position:absolute;left:calc(var(--stick-ball)*-.5);bottom:calc(var(--stick-ball)*.77);width:var(--stick-ball);height:var(--stick-ball);border-radius:50%;background:radial-gradient(circle at 30% 24%,#fff0dc 0 4%,#f7a38a 10%,#d4513e 28%,#9d211e 60%,#4b1116 90%);box-shadow:inset -3px -4px 5px #360b1499,2px 3px 5px #0006}
 @media(max-width:600px){.arcade-room-background{background-position:23% center}}
+
+/* Wear stays on the cabinet's painted surfaces, never over the game opening. */
+.deck-surface{background-image:url('assets/cabinet-wear-v1.svg'),radial-gradient(ellipse at 20% 82%,#d4c49020,transparent 23%),radial-gradient(ellipse at 72% 78%,#9a9d7e19,transparent 22%),linear-gradient(180deg,#0009,transparent 24%,#ffffff09 80%,#ffffff18),repeating-linear-gradient(125deg,#c8b16d12 0 2px,transparent 2px 13px),linear-gradient(105deg,#343c38,#222a28 48%,#3b423b)}
+#arcadeDecoration[data-frame=neon] .deck-surface{background-image:url('assets/cabinet-wear-v1.svg'),radial-gradient(ellipse at 19% 80%,#8c75552b,transparent 25%),radial-gradient(ellipse at 73% 78%,#a0825430,transparent 22%),linear-gradient(180deg,#57492c44,transparent 25%,#fff2 85%),repeating-linear-gradient(125deg,#ac534622 0 2px,transparent 2px 13px),linear-gradient(105deg,#d4ceb0,#b3bcaa 48%,#dcd4b3);border-color:#aaa88b;border-bottom-color:#cfc4a1}
+.arcade-scene .cabinet-side{background-image:url('assets/cabinet-wear-v1.svg'),linear-gradient(90deg,#281c16,#936440 45%,#4d3425)}
+#arcadeDecoration[data-frame=neon] .cabinet-side{background-image:url('assets/cabinet-wear-v1.svg'),linear-gradient(90deg,#73775d,#ccc7a3 50%,#949e84)}
+#arcadeDecoration[data-frame=neon] .cabinet-bezel{border-image:linear-gradient(90deg,#c7c2a1,#72796a 8%,#252d2b 18%,#252d2b 82%,#72796a 92%,#c7c2a1) 1}
+.arcade-scene .cabinet-coins{background-image:url('assets/cabinet-wear-v1.svg'),linear-gradient(180deg,#0009,#0002 55%),var(--wood)}
+#arcadeDecoration[data-frame=neon] .arcade-cabinet{--wood:linear-gradient(90deg,#aaa88b,#cec9a9,#a4ac94)}
+.deck-fascia{background-image:url('assets/cabinet-wear-v1.svg'),linear-gradient(#786a4a,#38372a 25%,#171c1b);border-top-color:#b2a07799}
+#arcadeDecoration[data-frame=neon] .deck-fascia{background-image:url('assets/cabinet-wear-v1.svg'),linear-gradient(#d5cba8,#a6ac8f 25%,#77846b);border-color:#797c62;border-top-color:#e2d9b8}
+.cabinet-bezel .screw{background:linear-gradient(45deg,#888477 38%,#292921 43% 56%,#66685a 61%);box-shadow:0 1px 2px #000c,0 0 0 1px #a99c6b44}

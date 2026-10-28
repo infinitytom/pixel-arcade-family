@@ -60,3 +60,5 @@ body:has(#grid) #gamepadHint,.arcade-document #gamepadHint{padding:0;border:0;ba
 .settings-preview[data-frame=none] .preview-base{display:none}
 
 #arcadeApproachSkip{position:absolute;z-index:5;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid #c0da9366;border-radius:12px;background:#172211ed;color:#e2edcf;font:12px/1.5 system-ui;cursor:pointer;box-shadow:0 5px 20px #0008;white-space:nowrap}#arcadeApproachSkip[hidden]{display:none}#arcadeApproachSkip:focus-visible{outline:3px solid #d0ef88;outline-offset:3px}
+
+.settings-preview .preview-cabinet,.settings-preview .preview-base{background-image:url("assets/cabinet-wear-v1.svg"),linear-gradient(100deg,#473529,#201a17 30%,#37271e 90%)}.settings-preview[data-frame=neon] .preview-cabinet,.settings-preview[data-frame=neon] .preview-base{background-image:url("assets/cabinet-wear-v1.svg"),linear-gradient(100deg,#aaa88b,#d0c9a9 40%,#a4ac94)}.settings-preview[data-frame=none] .preview-cabinet{background:none}
