@@ -5,7 +5,9 @@
 #arcadeDecoration[data-mask=scan] .arcade-mask{background:repeating-linear-gradient(0deg,#00000025 0 1px,transparent 1px 4px)}
 #arcadeDecoration[data-mask=aperture] .arcade-mask{background:repeating-linear-gradient(90deg,#ff00000c 0 1px,#00ff000c 1px 2px,#0000ff0c 2px 3px)}
 #playerStage{isolation:isolate;background:#090909}
-#playerStage:not([data-cabinet=none]){background:linear-gradient(#050a080f,#04080626),url('assets/arcade-room-v1.webp') center/cover no-repeat,#121411}
+#playerStage:not([data-cabinet=none]){background:#121411}
+.arcade-room-background{position:absolute;inset:-4%;pointer-events:none;z-index:0;background:linear-gradient(#050a080f,#04080626),url('assets/arcade-room-v1.webp') center/cover no-repeat;transform-origin:50% 52%}
+#playerStage[data-cabinet=none] .arcade-room-background{display:none}
 #playerStage:not([data-cabinet=none]):before{content:none}
 
 #game{z-index:1}#game canvas{transition:filter .15s}#game[data-filter=soft] canvas{filter:none}#game[data-filter=crt] canvas{filter:contrast(1.035) saturate(.97)}
@@ -73,7 +75,7 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 @media(max-width:600px){body:has(#game) #padGuide[data-experience=true]{padding:24px 20px}body:has(#game) #playerLaunch .launch-card{padding:20px}.arcade-wing span,.arcade-wing small{visibility:hidden}}
 
 /* Frontal cabinet: fixed screen plane, symmetric rails and recessed glass. */
-.arcade-scene{position:absolute;inset:0;transform:none}
+.arcade-scene{position:absolute;inset:0;transform:none;z-index:1}
 .arcade-scene .arcade-cabinet{filter:none;box-shadow:0 22px 32px #000b,0 2px 0 2px #100e0c}
 .arcade-scene .cabinet-side{top:7px;bottom:4px;height:auto;width:11px;z-index:-1;transform:none;clip-path:none;border:1px solid #211710;border-radius:3px;background:linear-gradient(90deg,#281c16,#936440 45%,#4d3425);box-shadow:inset 0 1px #c29b6866,0 4px 6px #0008}
 .arcade-scene .cabinet-side.side-left{left:-10px;right:auto}
@@ -140,4 +142,4 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 .stick-upright{position:absolute;left:50%;bottom:50%;width:0;height:0;transform-origin:0 0;transform:rotateX(-36deg);transform-style:preserve-3d}
 .stick-shaft{position:absolute;left:calc(var(--stick-ball)*-.075);bottom:0;width:calc(var(--stick-ball)*.15);height:calc(var(--stick-ball)*.95);border-radius:2px;background:linear-gradient(90deg,#343a38,#d4d8cd 40%,#929c93 60%,#333e39);box-shadow:1px 0 1px #0005}
 .stick-ball{position:absolute;left:calc(var(--stick-ball)*-.5);bottom:calc(var(--stick-ball)*.77);width:var(--stick-ball);height:var(--stick-ball);border-radius:50%;background:radial-gradient(circle at 30% 24%,#fff0dc 0 4%,#f7a38a 10%,#d4513e 28%,#9d211e 60%,#4b1116 90%);box-shadow:inset -3px -4px 5px #360b1499,2px 3px 5px #0006}
-@media(max-width:600px){#playerStage:not([data-cabinet=none]){background-position:23% center}}
+@media(max-width:600px){.arcade-room-background{background-position:23% center}}

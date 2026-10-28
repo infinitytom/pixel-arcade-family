@@ -25,6 +25,7 @@ jobs:
           node scripts/check_gamepad.cjs
           node scripts/check_game_audio.cjs
           BROWSER_CHANNEL=chromium node scripts/check_cabinet.cjs
+          BROWSER_CHANNEL=chromium node scripts/check_presentation.cjs
           python scripts/sync_test_server.py &
           for attempt in $(seq 1 20); do
             if curl --fail --silent http://127.0.0.1:18896/health; then break; fi

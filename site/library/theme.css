@@ -58,3 +58,5 @@ body:has(#grid) #gamepadHint,.arcade-document #gamepadHint{padding:0;border:0;ba
 .settings-preview[data-frame=neon] .preview-deck{border-color:#d0d4b6;border-bottom-color:#789283;background:linear-gradient(#526d5d66,transparent 35%,#fff6),repeating-linear-gradient(125deg,#ac484822 0 2px,transparent 2px 8px),#c6d0b8;color:#93483d}
 .settings-preview[data-frame=neon] .preview-base{background:linear-gradient(#50695399,#bcc6ad);color:#3b5d4c;border-color:#738972}
 .settings-preview[data-frame=none] .preview-base{display:none}
+
+#arcadeApproachSkip{position:absolute;z-index:5;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid #c0da9366;border-radius:12px;background:#172211ed;color:#e2edcf;font:12px/1.5 system-ui;cursor:pointer;box-shadow:0 5px 20px #0008;white-space:nowrap}#arcadeApproachSkip[hidden]{display:none}#arcadeApproachSkip:focus-visible{outline:3px solid #d0ef88;outline-offset:3px}

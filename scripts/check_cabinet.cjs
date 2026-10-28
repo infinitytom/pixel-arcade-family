@@ -22,7 +22,7 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
    assert.ok(geometry.base.y>=geometry.front.y&&geometry.base.bottom<=geometry.stage.bottom+1,'lower body stays beneath shelf and inside viewport');
    assert.ok(geometry.front.x>=geometry.stage.x&&geometry.front.right<=geometry.stage.right,'wide front edge remains inside viewport');
   }
-  const backgroundWidth=await page.evaluate(async()=>{const match=getComputedStyle(document.querySelector('#playerStage')).backgroundImage.match(/url\("?([^")]+)"?\)/);const image=new Image();image.src=match[1];await image.decode();return image.naturalWidth;});assert.ok(backgroundWidth>=1600,'room background actually decodes');
+  const backgroundWidth=await page.evaluate(async()=>{const match=getComputedStyle(document.querySelector('.arcade-room-background')).backgroundImage.match(/url\("?([^")]+)"?\)/);const image=new Image();image.src=match[1];await image.decode();return image.naturalWidth;});assert.ok(backgroundWidth>=1600,'room background actually decodes');
   await page.evaluate(()=>ArcadePreferences.update({frame:'none'}));assert.equal(await page.locator('.arcade-cabinet').isVisible(),false);assert.equal(await page.locator('#game').evaluate(n=>getComputedStyle(n).borderTopLeftRadius),'0px');await page.close();
  }
  console.log('PASS: frontal screen/glass alignment, projecting shelf, connected rear/slope/front surfaces, lower body and viewport fit across desktop/portrait/short-wide layouts.');

@@ -203,7 +203,7 @@
     document.addEventListener('keydown',e=>{if($('#arcadeSettings[open]')){if(e.key==='Escape'){e.preventDefault();$('#arcadeSettings').close();}return;}if(e.repeat||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(settingsDialog.open)settingsDialog.close();else if(guide.open)guide.close();else openGuide();}else if(e.key.toLowerCase()==='f'&&!settingsDialog.open){e.preventDefault();togglePlayerFullscreen();}},true);
   }
   let launching=false,launchDevice='';
-  function startPlayerGame(mode='new'){if(window.EJS_emulator?.started||launching)return;const start=$('.ejs_start_button');if(!start)return;window.ArcadeSound?.play('start');launching=true;launchDevice=chosenDevice||(()=>{try{const pad=Array.from(navigator.getGamepads?.()||[]).find(p=>p?.index===padIndex);return pad?deviceKey(pad):'';}catch{return '';}})();window.ArcadeSession?.select(mode);if(window.ArcadePreferences?.get().fullscreen==='on'){document.body.classList.add('player-immersive');if(navigator.userActivation?.isActive)document.documentElement.requestFullscreen?.().catch(()=>{});window.dispatchEvent(new Event('resize'));}window.ArcadeExperience?.layout?.();window.ArcadePresentation?.start();$('#playerLaunch').hidden=true;$('#playerMenuHint').textContent='正在加载游戏… · Esc 打开菜单';releaseGameInput();start.click();focusGame();}
+  function startPlayerGame(mode='new'){if(window.EJS_emulator?.started||launching)return;const start=$('.ejs_start_button');if(!start)return;window.ArcadeSound?.play('start');launching=true;launchDevice=chosenDevice||(()=>{try{const pad=Array.from(navigator.getGamepads?.()||[]).find(p=>p?.index===padIndex);return pad?deviceKey(pad):'';}catch{return '';}})();window.ArcadeSession?.select(mode);if(window.ArcadePreferences?.get().fullscreen==='on'){document.body.classList.add('player-immersive');if(navigator.userActivation?.isActive)document.documentElement.requestFullscreen?.().catch(()=>{});window.dispatchEvent(new Event('resize'));}window.ArcadeExperience?.layout?.();window.ArcadePresentation?.start(mode);$('#playerLaunch').hidden=true;$('#playerMenuHint').textContent='正在加载游戏… · Esc 打开菜单';releaseGameInput();start.click();focusGame();}
   function updatePlayerLaunch(){
     if(!playing)return;const launch=$('#playerLaunch'),button=$('#playerStart'),em=window.EJS_emulator;
     if(em?.started){window.ArcadeGameAudio?.attach();if(!launch.hidden)launch.hidden=true;if(!launch.dataset.started){launch.dataset.started='1';window.ArcadePresentation?.ready();refreshMenuHints();window.ArcadeSession?.restore();}return;}
@@ -220,6 +220,7 @@
   const gameBlockedPads=new Set();
   function releaseGameInput(){const em=window.EJS_emulator;for(const p of em?.gamepad?.gamepads||[])if(p)gameBlockedPads.add(p.index);if(!em?.started||!em.gameManager?.simulateInput)return;for(let p=0;p<4;p++)for(let b=0;b<30;b++)em.gameManager.simulateInput(p,b,0);}
   let boundEmulator=null,assignmentKey='',manualPlayers=false,manualSelections=[];
+  window.addEventListener('arcade-presentation-ended',()=>{if(!playing)return;releaseGameInput();neutralRequired=true;previous.clear();if(!guide.open&&!settingsDialog.open&&!$('#arcadeSettings[open]'))focusGame();});
   window.addEventListener('arcade-settings-closed',()=>{if(playing)releaseGameInput();neutralRequired=true;previous.clear();});
   function syncGameControllers(pads){
     if(!playing)return;const em=window.EJS_emulator;
@@ -239,7 +240,7 @@
         if(name==='connected'||name==='disconnected'){assignmentKey='';return;}
         const index=this.gamepads.findIndex(p=>p?.index===event?.gamepadIndex);
         if(index<0)return;
-        if(['buttondown','buttonup','axischanged'].includes(name)&&(guide.open||settingsDialog.open||$('#arcadeSettings[open]')||gameBlockedPads.has(event.gamepadIndex)||focusSuspended))return;
+        if(['buttondown','buttonup','axischanged'].includes(name)&&(guide.open||settingsDialog.open||$('#arcadeSettings[open]')||gameBlockedPads.has(event.gamepadIndex)||focusSuspended||window.ArcadePresentation?.approaching?.()))return;
         if(name==='axischanged'&&['LEFT_STICK_X','LEFT_STICK_Y'].includes(event.axis)&&['arcade','mame'].includes(em.getControlScheme?.())&&em.started){
           const p=em.gamepadSelection.indexOf(this.gamepads[index].id+'_'+this.gamepads[index].index);
           if(p>=0){const [negative,positive]=event.axis==='LEFT_STICK_X'?[6,7]:[4,5];em.gameManager.simulateInput(p,negative,event.value < -settings.deadzone?1:0);em.gameManager.simulateInput(p,positive,event.value > settings.deadzone?1:0);}return;
@@ -399,6 +400,7 @@
     const reception=inputSeen?(down.size||dir?'正在接收输入':'已收到输入 · 请保持此窗口在前台'):'已识别设备 · 请点击网页后按方向或 A 确认输入';
     // A held launch button must be released on arrival/reconnect before it can act.
     if(neutralRequired){if(!down.size && !dir){neutralRequired=false;comboArmed=true;}status(deviceName+' · '+(neutralRequired?'已识别设备 · 请松开按键和左摇杆。':reception));previous=down;return;}
+    if(playing&&window.ArcadePresentation?.approaching?.()){if(down.has(0)&&!previous.has(0)){window.ArcadePresentation.skip();releaseGameInput();neutralRequired=true;}previous=down;direction='';return;}
     status(deviceName+' · '+reception+(!chosenDevice && standard.length && pads.length>standard.length?'（自动忽略非标准设备的轴输入）':''));
     if(playing && !guide.open && !settingsDialog.open && !$('#arcadeSettings[open]')){
       if(!$('#playerLaunch').hidden&&dir&&(dir!==direction||now>=repeatAt)){move(dir);repeatAt=now+(dir===direction?settings.repeat:380);}
