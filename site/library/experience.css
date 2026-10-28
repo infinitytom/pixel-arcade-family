@@ -5,8 +5,9 @@
 #arcadeDecoration[data-mask=scan] .arcade-mask{background:repeating-linear-gradient(0deg,#00000025 0 1px,transparent 1px 4px)}
 #arcadeDecoration[data-mask=aperture] .arcade-mask{background:repeating-linear-gradient(90deg,#ff00000c 0 1px,#00ff000c 1px 2px,#0000ff0c 2px 3px)}
 #playerStage{isolation:isolate;background:#090909}
-#playerStage:not([data-cabinet=none]){background:radial-gradient(ellipse at 50% 0,#824e3238,transparent 70%),repeating-linear-gradient(90deg,#100f13 0 12%,#21151c 12.2% 12.5%,#0c0c11 12.7% 25%)}
-#playerStage:not([data-cabinet=none]):before{content:'';position:absolute;inset:68% 0 0;background:repeating-linear-gradient(0deg,transparent 0 36px,#b2746320 37px 38px),repeating-linear-gradient(90deg,#100d10 0 89px,#b2746320 90px 91px);transform:perspective(200px) rotateX(28deg);transform-origin:bottom;z-index:0}
+#playerStage:not([data-cabinet=none]){background:linear-gradient(#050a080f,#04080626),url('assets/arcade-room-v1.webp') center/cover no-repeat,#121411}
+#playerStage:not([data-cabinet=none]):before{content:none}
+
 #game{z-index:1}#game canvas{transition:filter .15s}#game[data-filter=soft] canvas{filter:none}#game[data-filter=crt] canvas{filter:contrast(1.035) saturate(.97)}
 .arcade-cabinet{position:absolute;left:var(--cabinet-left);top:var(--cabinet-top);width:var(--cabinet-width);height:var(--cabinet-height);filter:drop-shadow(0 15px 28px #000b);--wood:repeating-linear-gradient(92deg,#3c231c 0 3px,#45291e 4px 7px,#543025 9px 10px);--trim:#9e6d42;--deck-color:#292623}
 #arcadeDecoration[data-frame=none] .arcade-cabinet{display:none}
@@ -23,12 +24,7 @@
 #arcadeDecoration[data-frame=neon] .cabinet-marquee{border-color:#d2d2c7;background:linear-gradient(110deg,#9ce0d8,#d7f7dc,#a9c4da);color:#285955;box-shadow:inset 0 0 14px #fff8,0 0 25px #81e2d01a}
 #arcadeDecoration[data-frame=neon] .cabinet-deck{background:linear-gradient(170deg,#f0ecdc,#a8b4b0);border-top-color:#aabbb3}.arcade-preview,.arcade-glass{position:absolute;left:var(--gutter);top:var(--screen-top);width:var(--screen-width);height:var(--screen-height)}
 #arcadeDecoration[data-frame=neon] .cabinet-bezel{border-image:linear-gradient(110deg,#bfc6bb,#3e4540 6%,#242b29 50%,#363f38 94%,#bfc6bb) 1}
-.arcade-neighbor{position:absolute;top:21%;width:150px;height:60%;box-sizing:border-box;background:linear-gradient(90deg,#211516,#3c2423,#160f13);border:5px solid #33242a;border-bottom-width:50px;border-radius:9px 9px 2px 2px;opacity:.5;filter:blur(.4px);box-shadow:0 15px 30px #0008;display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px}
-.neighbor-left{left:calc(var(--cabinet-left) - 185px);transform:perspective(600px) rotateY(15deg)}.neighbor-right{left:calc(var(--cabinet-left) + var(--cabinet-width) + 35px);transform:perspective(600px) rotateY(-15deg)}
-.arcade-neighbor b{display:block;box-sizing:border-box;width:100%;background:linear-gradient(100deg,#66492a,#d6a65c,#634633);color:#402d24;text-align:center;font:900 13px/2.3 Georgia,serif;letter-spacing:.08em;box-shadow:0 0 15px #ffb74712}.neighbor-right b{background:linear-gradient(100deg,#1b3c42,#779a9e,#253a41)}
-.arcade-neighbor i{width:95%;height:47%;background:radial-gradient(ellipse,#21342c,#060c0b 70%);border:8px solid #0c0c0d;box-sizing:border-box;position:relative}.arcade-neighbor i:after{content:'';position:absolute;left:36%;top:43%;width:16px;height:10px;background:#658b5980;box-shadow:-28px -24px #b9984d55,28px -24px #b9984d55,0 -24px #b9984d55,0 42px #7790a459}
-.arcade-neighbor span{font:6px system-ui;color:#a8997e;letter-spacing:.2em;margin-top:5px}
-#arcadeDecoration[data-frame=none] .arcade-neighbor{display:none}@media(max-width:1000px){.arcade-neighbor{display:none}}
+
 .arcade-preview{object-fit:fill;image-rendering:pixelated;z-index:1;background:#000}.arcade-preview[hidden]{display:none}.arcade-glass{z-index:2}.arcade-mask{z-index:3}
 #arcadeDecoration[data-filter=soft] .arcade-preview{image-rendering:auto;filter:none}
 #arcadeDecoration[data-filter=crt] .arcade-preview{filter:contrast(1.035) saturate(.97)}
@@ -138,3 +134,10 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 .deck-surface .arcade-buttons b{width:var(--button-size);height:calc(var(--button-size)*.84)}
 
 #arcadeDecoration[data-frame=neon] .cabinet-deck{border:0;background:none;box-shadow:none}
+
+/* One upright part shares a single anchor and counter-rotation on the sloped base. */
+.deck-surface .joystick:before,.deck-surface .joystick:after{content:none;display:none}
+.stick-upright{position:absolute;left:50%;bottom:50%;width:0;height:0;transform-origin:0 0;transform:rotateX(-36deg);transform-style:preserve-3d}
+.stick-shaft{position:absolute;left:calc(var(--stick-ball)*-.075);bottom:0;width:calc(var(--stick-ball)*.15);height:calc(var(--stick-ball)*.95);border-radius:2px;background:linear-gradient(90deg,#343a38,#d4d8cd 40%,#929c93 60%,#333e39);box-shadow:1px 0 1px #0005}
+.stick-ball{position:absolute;left:calc(var(--stick-ball)*-.5);bottom:calc(var(--stick-ball)*.77);width:var(--stick-ball);height:var(--stick-ball);border-radius:50%;background:radial-gradient(circle at 30% 24%,#fff0dc 0 4%,#f7a38a 10%,#d4513e 28%,#9d211e 60%,#4b1116 90%);box-shadow:inset -3px -4px 5px #360b1499,2px 3px 5px #0006}
+@media(max-width:600px){#playerStage:not([data-cabinet=none]){background-position:23% center}}

@@ -20,10 +20,11 @@
   const validRatio=n=>Number.isFinite(n)&&n>=.2&&n<=5;
   let preloadRatio=validRatio(Number(params.get('aspect')))?Number(params.get('aspect')):4/3,ratioKey='',lastMeasured=0;
   try {const saved = JSON.parse(localStorage.getItem(key));for(const k in defaults)if(choices[k].some(([v])=>v===saved?.[k]))picture[k]=saved[k];} catch {}
-  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet8',assets);document.head.append(style);
+  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet9',assets);document.head.append(style);
   const stage = document.querySelector('#playerStage');
   const decor = document.createElement('div');decor.id='arcadeDecoration';decor.setAttribute('aria-hidden','true');
   decor.innerHTML='<div class="arcade-cabinet"><div class="cabinet-marquee"><i></i><div><small>像素放映厅</small><strong>VIDEO ARCADE</strong></div><i></i></div><div class="cabinet-bezel"><span class="bezel-caption">HIGH SCORE · ONE MORE ROUND</span><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i></div><div class="cabinet-deck"><div class="deck-player"><span>1 PLAYER</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div><div class="deck-player"><span>2 PLAYERS</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div></div><div class="cabinet-coins"><span>请投入代币<br><small>INSERT COIN</small></span><i></i><i></i><span>再来一局<br><small>PLAY AT HOME</small></span></div></div><img class="arcade-preview" alt="" hidden><div class="arcade-glass"></div><div class="arcade-mask"></div>';
+  for(const stick of decor.querySelectorAll('.joystick'))stick.innerHTML='<span class="stick-upright"><i class="stick-shaft"></i><i class="stick-ball"></i></span>';
   const deckSurface=document.createElement('div');deckSurface.className='deck-surface';
   const deck=decor.querySelector('.cabinet-deck');deckSurface.append(...deck.children);deck.append(deckSurface);
   const fascia=document.createElement('div');fascia.className='deck-fascia';fascia.innerHTML='<i></i><span>HOME ARCADE SYSTEM</span><i></i>';deck.append(fascia);
@@ -33,7 +34,6 @@
   const scene=document.createElement('div');scene.className='arcade-scene';stage.append(scene);scene.append(document.querySelector('#game'),decor);
   decor.style.visibility='hidden';
   decor.querySelector('.arcade-cabinet').insertAdjacentHTML('afterbegin','<div class="cabinet-roof"></div><div class="cabinet-side side-left"></div><div class="cabinet-side side-right"></div>');
-  decor.insertAdjacentHTML('afterbegin','<div class="arcade-neighbor neighbor-left"><b>GAME CENTER</b><i></i><span>INSERT COIN</span></div><div class="arcade-neighbor neighbor-right"><b>VIDEO GAME</b><i></i><span>PLAYER 1 · PLAYER 2</span></div>');
   const shaderNames={original:'disabled',soft:'2xScaleHQ.glslp',crt:'crt-easymode.glslp',phosphor:'phosphor-dot.glslp','phosphor-glow':'phosphor-glow.glslp','phosphor-line':'phosphor-line.glslp','phosphor-line-glow':'phosphor-line-glow.glslp','phosphor-line-reflex':'phosphor-line-reflex.glslp'};
   const strengths={light:{scan:.3,mask:.06,overlay:.13,shade:.13},balanced:{scan:.5,mask:.13,overlay:.22,shade:.22},strong:{scan:.75,mask:.22,overlay:.32,shade:.32}};
   function setShader(em,filter) {
