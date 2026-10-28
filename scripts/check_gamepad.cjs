@@ -23,6 +23,7 @@ const server=http.createServer((req,res)=>{
     const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];
     page.setDefaultTimeout(10000);
     page.on('pageerror',e=>errors.push(e.message));
+    await page.route('**/private-shaders.json',r=>r.fulfill({status:404,body:''}));
     await page.addInitScript(()=>{localStorage.setItem('pixelarcade:local:preferences',JSON.stringify({fullscreen:'off',autoSave:'off'}));
       window.pads=[{id:'Test standard pad',index:0,connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}];
       if(location.pathname==='/play.html')window.pads[0].buttons[9]={pressed:true,value:1};
@@ -38,6 +39,7 @@ const server=http.createServer((req,res)=>{
     const focus=async s=>page.locator(s).first().focus();
     const active=()=>page.evaluate(()=>document.activeElement.id||document.activeElement.className);
     await page.goto(base+'/library/');await page.bringToFront();await page.waitForSelector('.cover');await down();
+    await page.evaluate(()=>document.querySelector('#padGuide')?.close());await page.locator('.global-settings-button').click();await page.getByLabel('默认滤镜',{exact:true}).focus();await down();await press(14);assert.equal(await page.getByLabel('默认滤镜',{exact:true}).inputValue(),'crt','controller skips unavailable imported presets');await press(15);assert.equal(await page.getByLabel('默认滤镜',{exact:true}).inputValue(),'original');await page.locator('#arcadeSettings .settings-close').click();await down();
     await press(8);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);await press(1);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),false);
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await down();
     assert.match(await page.locator('#padDeviceStatus').innerText(),/已识别设备/);assert.doesNotMatch(await page.locator('#padDeviceStatus').innerText(),/已就绪/);

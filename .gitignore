@@ -6,6 +6,7 @@ roms/*
 !roms/.gitkeep
 dist/
 test-results/
+site/library/private-shaders.json
 node_modules/
 site/library/cheats/
 cheats/*

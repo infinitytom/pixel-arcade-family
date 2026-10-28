@@ -6,9 +6,9 @@
   try{const cover=new URL(params.get('cover')||'',location.origin);if(params.get('cover')&&cover.origin===location.origin&&/^https?:$/.test(cover.protocol))posterURL=cover.href;}catch{}
   const poster=document.createElement('img');poster.className='launch-poster';poster.alt='游戏海报';poster.src=posterURL;poster.onerror=()=>{poster.onerror=null;poster.src=new URL('assets/arcade-icon-v1.svg',assets).href;posterURL=poster.src;};
   const hero=document.createElement('div');hero.className='launch-hero';const title=document.querySelector('#launchTitle');title.before(hero);hero.append(poster,title);
-  const entrance=document.createElement('div');entrance.id='arcadeEntrance';entrance.hidden=true;entrance.setAttribute('aria-hidden','true');const image=document.createElement('img');image.alt='';image.src=posterURL;image.onerror=()=>{image.onerror=null;image.src=new URL('assets/arcade-icon-v1.svg',assets).href;};const label=document.createElement('span');label.textContent='正在启动游戏…';entrance.append(image,label);stage.append(entrance);
+  const entrance=document.createElement('div');entrance.id='arcadeEntrance';entrance.hidden=true;entrance.setAttribute('aria-hidden','true');const image=document.createElement('img');image.alt='';image.src=posterURL;image.onerror=()=>{image.onerror=null;image.src=new URL('assets/arcade-icon-v1.svg',assets).href;};const label=document.createElement('span');label.textContent='正在启动游戏…';entrance.append(image,label);(game.parentElement||stage).append(entrance);
   const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;let running=false,generation=0,startedAt=0,timer=null;
-  function place(){const r=game.getBoundingClientRect(),parent=stage.getBoundingClientRect();Object.assign(entrance.style,{left:r.left-parent.left+'px',top:r.top-parent.top+'px',width:r.width+'px',height:r.height+'px'});}
+  function place(){Object.assign(entrance.style,{left:game.offsetLeft+'px',top:game.offsetTop+'px',width:game.offsetWidth+'px',height:game.offsetHeight+'px'});}
   function clear(){generation++;running=false;clearTimeout(timer);entrance.getAnimations().forEach(a=>a.cancel());image.getAnimations().forEach(a=>a.cancel());entrance.hidden=true;}
   new ResizeObserver(place).observe(game);
   window.ArcadePresentation={

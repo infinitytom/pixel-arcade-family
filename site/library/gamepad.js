@@ -78,8 +78,14 @@
     // A native select is changed directly; synthetic key events cannot open its menu.
     if (active.tagName === 'SELECT' && (dir === 'left' || dir === 'right')) {
       const delta = dir === 'left' || dir === 'up' ? -1 : 1;
-      active.selectedIndex = (active.selectedIndex + delta + active.options.length) % active.options.length;
-      active.dispatchEvent(new Event('change', {bubbles:true})); return;
+      let next=active.selectedIndex;
+      for(let count=0;count<active.options.length;count++){
+        next=(next+delta+active.options.length)%active.options.length;
+        if(active.options[next].disabled||active.options[next].closest('optgroup[disabled]'))continue;
+        if(next!==active.selectedIndex){active.selectedIndex=next;active.dispatchEvent(new Event('change',{bubbles:true}));}
+        return;
+      }
+      return;
     }
     // Forms are read in document order. Geometry skips narrow or aligned fields,
     // especially after a scroll changes the position of a sticky close button.
@@ -200,7 +206,7 @@
   function startPlayerGame(mode='new'){if(window.EJS_emulator?.started||launching)return;const start=$('.ejs_start_button');if(!start)return;window.ArcadeSound?.play('start');launching=true;launchDevice=chosenDevice||(()=>{try{const pad=Array.from(navigator.getGamepads?.()||[]).find(p=>p?.index===padIndex);return pad?deviceKey(pad):'';}catch{return '';}})();window.ArcadeSession?.select(mode);if(window.ArcadePreferences?.get().fullscreen==='on'){document.body.classList.add('player-immersive');if(navigator.userActivation?.isActive)document.documentElement.requestFullscreen?.().catch(()=>{});window.dispatchEvent(new Event('resize'));}window.ArcadeExperience?.layout?.();window.ArcadePresentation?.start();$('#playerLaunch').hidden=true;$('#playerMenuHint').textContent='正在加载游戏… · Esc 打开菜单';releaseGameInput();start.click();focusGame();}
   function updatePlayerLaunch(){
     if(!playing)return;const launch=$('#playerLaunch'),button=$('#playerStart'),em=window.EJS_emulator;
-    if(em?.started){if(!launch.hidden)launch.hidden=true;if(!launch.dataset.started){launch.dataset.started='1';window.ArcadePresentation?.ready();refreshMenuHints();window.ArcadeSession?.restore();}return;}
+    if(em?.started){window.ArcadeGameAudio?.attach();if(!launch.hidden)launch.hidden=true;if(!launch.dataset.started){launch.dataset.started='1';window.ArcadePresentation?.ready();refreshMenuHints();window.ArcadeSession?.restore();}return;}
     if(em?.failedToStart){window.ArcadePresentation?.failed();launch.hidden=false;button.disabled=true;$('#launchStatus').textContent='游戏加载失败。请返回大厅尝试匹配的核心，或重新载入页面。';if(!$('#playerRetry')){const retry=document.createElement('button');retry.id='playerRetry';retry.textContent='重新载入页面';retry.onclick=()=>location.reload();button.after(retry);}return;}
     if(!launch.hidden&&$('.ejs_start_button')){if($('#playerContinue'))$('#playerContinue').disabled=false;if(button.disabled){button.disabled=false;button.textContent='开始新游戏';$('#launchStatus').textContent='准备好了，选择开始新游戏，或继续上次游玩。';if(!guide.open&&!settingsDialog.open)focusGame();}}
   }
