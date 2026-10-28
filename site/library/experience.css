@@ -98,3 +98,43 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 #playerStage[data-cabinet=none] #game{border-radius:0}
 .arcade-glass,.arcade-mask,.arcade-preview,.arcade-native-preview{border-radius:var(--screen-radius,0px)}
 #arcadeDecoration:not([data-frame=none]) .arcade-glass:after{content:'';position:absolute;inset:-4px;border:4px solid #101313;border-radius:calc(var(--screen-radius,12px) + 4px);box-shadow:0 -2px 3px #000d,0 2px 1px #b2bca54d,inset 0 2px 3px #000b,inset 0 -1px 1px #c4d2c229;pointer-events:none}
+
+/* The upright monitor, projecting sloped controls and lower body are separate surfaces. */
+.arcade-scene .arcade-cabinet{box-shadow:none;filter:drop-shadow(0 18px 22px #000a)}
+.arcade-scene .cabinet-marquee{left:8px;right:8px;border-radius:13px 13px 2px 2px;border-width:8px 9px 6px}
+.cabinet-roof{left:8px;right:8px}
+.arcade-scene .cabinet-side{top:12px;bottom:var(--coins);width:12px}
+.arcade-scene .cabinet-side.side-left{left:-4px}.arcade-scene .cabinet-side.side-right{right:-4px}
+.arcade-scene .cabinet-bezel{height:calc(var(--screen-height) + var(--bezel-top) + var(--bezel-bottom));border-top-width:var(--bezel-top);border-bottom-width:var(--bezel-bottom);background:linear-gradient(180deg,#ffffff07,transparent 18%);box-shadow:0 0 0 2px #17120e,inset 0 10px 12px #000b,inset 7px 0 10px #0008,inset -7px 0 10px #0008,inset 0 -3px 2px #d4c4a644}
+.cabinet-bezel .bezel-caption{bottom:calc(-1*var(--bezel-bottom) + 11px);font-size:clamp(5px,.6vw,9px);letter-spacing:.22em;color:#b9aa8b}
+.cabinet-speaker{position:absolute;top:14%;width:calc(var(--edge) - 12px);height:clamp(36px,22vh,126px);border-radius:40%;background:repeating-linear-gradient(0deg,#0b1011 0 2px,#786a5277 3px,#0b1011 4px 5px);box-shadow:inset 2px 0 3px #000,0 0 0 2px #ffffff0a}
+.speaker-left{left:calc(-1*var(--edge) + 6px)}.speaker-right{right:calc(-1*var(--edge) + 6px)}
+.arcade-scene .cabinet-deck{left:calc(-1*var(--deck-overhang));right:calc(-1*var(--deck-overhang));height:var(--deck);border:0;border-radius:0;background:none;box-shadow:none;transform:none;transform-style:preserve-3d;display:block;z-index:2}
+.arcade-scene .cabinet-deck:after{display:none}
+.deck-surface{position:absolute;left:0;right:0;bottom:var(--deck-lip);height:var(--deck-plane-height);box-sizing:border-box;display:flex;align-items:stretch;transform-origin:50% 100%;transform:perspective(var(--deck-perspective)) rotateX(36deg);transform-style:preserve-3d;border:5px solid #745135;border-top:7px solid #1b1917;border-bottom:3px solid #b28a50;border-radius:3px 3px 5px 5px;background:linear-gradient(180deg,#0009,transparent 24%,#ffffff09 80%,#ffffff18),repeating-linear-gradient(125deg,#c8b16d12 0 2px,transparent 2px 13px),linear-gradient(105deg,#343c38,#222a28 48%,#3b423b);box-shadow:inset 0 3px 5px #000b,inset 0 -2px 1px #e3d0a777,0 0 0 2px #171713}
+.deck-surface:before{content:'';position:absolute;left:3%;right:3%;top:14%;height:3px;background:linear-gradient(90deg,#bda66c 0 39%,transparent 39% 61%,#bda66c 61%);box-shadow:0 5px 0 #bda66c33;opacity:.7}
+.deck-surface .deck-player{align-items:center;padding-top:calc(var(--deck-plane-height)*.24);box-sizing:border-box}
+.deck-surface .deck-player>span{left:10%;top:18%;font-size:clamp(6px,.65vw,10px);color:#c9b67b}
+.deck-surface .joystick{transform-style:preserve-3d}
+.deck-surface .joystick:before{transform-origin:50% 100%;transform:rotateX(-36deg) rotate(-8deg)}
+.deck-surface .joystick:after{transform-origin:50% 100%;transform:rotateX(-36deg);box-shadow:inset -2px -3px 4px #38080b99,2px 8px 8px #0009}
+.deck-surface .arcade-buttons{gap:7px;transform:rotate(-9deg);padding-right:5%}
+.deck-fascia{position:absolute;left:0;right:0;bottom:0;height:var(--deck-lip);box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;padding:0 18px;border:2px solid #1d1d19;border-top:1px solid #b29c6577;border-radius:0 0 7px 7px;background:linear-gradient(#6d6246,#38372a 25%,#171c1b);box-shadow:0 6px 7px #000c,inset 0 -2px 1px #000}
+.deck-fascia span{font:5px/1 system-ui;letter-spacing:.24em;color:#a6a78f}.deck-fascia i{width:5px;height:5px;border-radius:50%;background:linear-gradient(45deg,#777768 40%,#111 45% 55%,#777768 60%)}
+.arcade-scene .cabinet-coins{inset:auto 12px 0;height:var(--coins);border-width:2px 5px 3px;border-radius:0 0 5px 5px;box-shadow:inset 0 10px 12px #000b,inset 2px 0 #b3875255,inset -2px 0 #b3875233,0 4px 0 #0c0d0d;background:linear-gradient(180deg,#0009,#0002 55%),var(--wood)}
+#arcadeDecoration[data-frame=neon] .cabinet-bezel{border-image:linear-gradient(90deg,#d4d5bc,#748278 8%,#252d2b 18%,#252d2b 82%,#748278 92%,#d4d5bc) 1}
+#arcadeDecoration[data-frame=neon] .deck-surface{border-color:#b9c0ab;border-top-color:#637064;border-bottom-color:#e0dfbf;background:linear-gradient(180deg,#273c3355,transparent 25%,#ffffff55 85%),repeating-linear-gradient(125deg,#d2534620 0 2px,transparent 2px 13px),linear-gradient(105deg,#d9ddc5,#b8c6b8 48%,#e3e2c9);box-shadow:inset 0 3px 5px #2d403b77,inset 0 -2px 1px #fff9,0 0 0 2px #4b5b4f}
+#arcadeDecoration[data-frame=neon] .deck-surface:before{background:linear-gradient(90deg,#9c3d3b 0 39%,transparent 39% 61%,#9c3d3b 61%);box-shadow:0 5px 0 #9c3d3b55}
+#arcadeDecoration[data-frame=neon] .deck-player>span{color:#3f6558}
+#arcadeDecoration[data-frame=neon] .deck-fascia{border-color:#687a6b;border-top-color:#fff9;background:linear-gradient(#e8e8cc,#a7b9a5 25%,#738c7d);box-shadow:0 6px 7px #000b,inset 0 -2px 1px #3b534b}
+#arcadeDecoration[data-frame=neon] .deck-fascia span{color:#3c574a}
+@media(max-width:500px){.deck-surface .arcade-buttons{gap:4px;padding-right:0}.deck-surface .deck-player{gap:14px}.deck-fascia{padding:0 10px}.deck-fascia span{font-size:4px}.cabinet-speaker{width:4px}.cabinet-bezel .bezel-caption{bottom:calc(-1*var(--bezel-bottom) + 10px)}}
+
+.deck-surface .deck-player{transform-style:preserve-3d}
+.deck-surface .joystick{width:calc(var(--stick-ball)*1.16);height:calc(var(--stick-ball)*.45);transform-style:preserve-3d}
+.deck-surface .joystick:before{left:48%;bottom:calc(var(--stick-ball)*.2);height:calc(var(--stick-ball)*.85);width:5px}
+.deck-surface .joystick:after{left:0;bottom:calc(var(--stick-ball)*.75);width:var(--stick-ball);height:var(--stick-ball);transform:rotateX(-36deg) translateZ(3px)}
+.deck-surface .arcade-buttons{grid-template-columns:repeat(3,var(--button-size))}
+.deck-surface .arcade-buttons b{width:var(--button-size);height:calc(var(--button-size)*.84)}
+
+#arcadeDecoration[data-frame=neon] .cabinet-deck{border:0;background:none;box-shadow:none}

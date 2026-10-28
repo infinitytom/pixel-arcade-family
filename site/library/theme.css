@@ -49,3 +49,12 @@ body:has(#grid) #gamepadHint,.arcade-document #gamepadHint{padding:0;border:0;ba
 .settings-preview[data-frame=none] .preview-glass{border-radius:0}
 
 .account-sync-indicator{font:11px/1.5 system-ui;color:#b9ce9d;padding:5px 9px;border:1px solid #a7c67b30;border-radius:8px;white-space:nowrap}.account-sync-indicator[data-phase="同步未完成"]{color:#e3bb87;border-color:#e3bb8755}
+
+/* Match the main cabinet's upright back and projecting control shelf. */
+.settings-preview:not([data-frame=none]) .preview-cabinet{padding-bottom:0;border-bottom-width:3px;box-shadow:inset 2px 0 #c39c6655,inset -2px 0 #100c0a,0 8px 18px #0009}
+.settings-preview:not([data-frame=none]) .preview-screen{margin-bottom:12px}
+.settings-preview:not([data-frame=none]) .preview-deck{position:relative;margin:0 -23px;height:34px;line-height:28px;padding:0 9px;box-sizing:border-box;transform:perspective(220px) rotateX(36deg);transform-origin:50% 100%;border:3px solid #927346;border-bottom:5px solid #393c2f;background:linear-gradient(#171d1c55,transparent 35%,#fff2),repeating-linear-gradient(125deg,#c8b16d12 0 2px,transparent 2px 8px),#3b463e;box-shadow:0 5px 0 #181f1b,0 9px 7px #0009;color:#e3a579;letter-spacing:5px}
+.preview-base{height:20px;font:10px/18px monospace;letter-spacing:9px;text-align:center;color:#cf9261;background:linear-gradient(#0b110caa,#2c2b21);margin:0 -6px;border:2px solid #282c22;border-top:0;border-radius:0 0 4px 4px}
+.settings-preview[data-frame=neon] .preview-deck{border-color:#d0d4b6;border-bottom-color:#789283;background:linear-gradient(#526d5d66,transparent 35%,#fff6),repeating-linear-gradient(125deg,#ac484822 0 2px,transparent 2px 8px),#c6d0b8;color:#93483d}
+.settings-preview[data-frame=neon] .preview-base{background:linear-gradient(#50695399,#bcc6ad);color:#3b5d4c;border-color:#738972}
+.settings-preview[data-frame=none] .preview-base{display:none}

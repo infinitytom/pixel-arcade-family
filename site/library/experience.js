@@ -20,10 +20,14 @@
   const validRatio=n=>Number.isFinite(n)&&n>=.2&&n<=5;
   let preloadRatio=validRatio(Number(params.get('aspect')))?Number(params.get('aspect')):4/3,ratioKey='',lastMeasured=0;
   try {const saved = JSON.parse(localStorage.getItem(key));for(const k in defaults)if(choices[k].some(([v])=>v===saved?.[k]))picture[k]=saved[k];} catch {}
-  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet7',assets);document.head.append(style);
+  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet8',assets);document.head.append(style);
   const stage = document.querySelector('#playerStage');
   const decor = document.createElement('div');decor.id='arcadeDecoration';decor.setAttribute('aria-hidden','true');
   decor.innerHTML='<div class="arcade-cabinet"><div class="cabinet-marquee"><i></i><div><small>像素放映厅</small><strong>VIDEO ARCADE</strong></div><i></i></div><div class="cabinet-bezel"><span class="bezel-caption">HIGH SCORE · ONE MORE ROUND</span><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i></div><div class="cabinet-deck"><div class="deck-player"><span>1 PLAYER</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div><div class="deck-player"><span>2 PLAYERS</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div></div><div class="cabinet-coins"><span>请投入代币<br><small>INSERT COIN</small></span><i></i><i></i><span>再来一局<br><small>PLAY AT HOME</small></span></div></div><img class="arcade-preview" alt="" hidden><div class="arcade-glass"></div><div class="arcade-mask"></div>';
+  const deckSurface=document.createElement('div');deckSurface.className='deck-surface';
+  const deck=decor.querySelector('.cabinet-deck');deckSurface.append(...deck.children);deck.append(deckSurface);
+  const fascia=document.createElement('div');fascia.className='deck-fascia';fascia.innerHTML='<i></i><span>HOME ARCADE SYSTEM</span><i></i>';deck.append(fascia);
+  decor.querySelector('.cabinet-bezel').insertAdjacentHTML('beforeend','<i class="cabinet-speaker speaker-left"></i><i class="cabinet-speaker speaker-right"></i>');
   stage.append(decor);
   const shaderPreview=document.createElement('canvas');shaderPreview.className='arcade-native-preview';shaderPreview.hidden=true;decor.querySelector('.arcade-glass').before(shaderPreview);
   const scene=document.createElement('div');scene.className='arcade-scene';stage.append(scene);scene.append(document.querySelector('#game'),decor);
@@ -72,20 +76,22 @@
     try {const measured=em?.started?gm?.getVideoDimensions('aspect'):null;if(validRatio(measured)){ratio=measured;if(ratioKey&&Math.abs(measured-lastMeasured)>.001){lastMeasured=measured;localStorage.setItem(ratioKey,String(measured));}preloadRatio=measured;}} catch {}
     stage.dataset.screenAspect=String(ratio);
     const w=stage.clientWidth,h=stage.clientHeight,cabinet=picture.frame!=='none';
-    const edge=cabinet?Math.max(10,Math.min(25,w*.025)):0;
-    const marquee=cabinet?Math.max(36,Math.min(72,h*.10)):0;
-    const deck=cabinet?Math.max(42,Math.min(88,h*.115)):0;
-    const coins=cabinet?Math.max(24,Math.min(46,h*.06)):0;
-    const pad=cabinet?Math.min(22,h*.025):0;
-    const vw=Math.min(Math.max(1,w-edge*2-(cabinet?Math.min(40,w*.04):0)),Math.max(1,h-marquee-deck-coins-pad*2)*ratio),vh=vw/ratio;
-    const left=(w-vw)/2,top=(h-vh-marquee-deck-coins-pad*2)/2+marquee+pad;
+    const edge=cabinet?Math.max(14,Math.min(38,w*.035)):0;
+    const overhang=cabinet?Math.max(9,Math.min(44,w*.03)):0;
+    const marquee=cabinet?Math.max(32,Math.min(64,h*.085)):0;
+    const deck=cabinet?Math.max(50,Math.min(144,h*.16,w*.235)):0;
+    const coins=cabinet?Math.max(24,Math.min(48,h*.06,w*.09)):0;
+    const upper=cabinet?Math.min(20,h*.025):0,lower=cabinet?Math.min(40,h*.05):0;
+    const fixed=marquee+deck+coins+upper+lower;
+    const vw=Math.min(Math.max(1,w-2*(edge+overhang)-(cabinet?20:0)),Math.max(1,h-fixed-8)*ratio),vh=vw/ratio;
+    const left=(w-vw)/2,top=(h-vh-fixed)/2+marquee+upper;
     stage.dataset.cabinet=picture.frame;stage.style.setProperty('--screen-radius',(cabinet?Math.min(18,Math.min(vw,vh)*.025):0)+'px');
     Object.assign(document.querySelector('#game').style,{position:'absolute',left:(cabinet?left:0)+'px',top:(cabinet?top:0)+'px',width:(cabinet?vw:w)+'px',height:(cabinet?vh:h)+'px'});
-    decor.style.setProperty('--gutter',left+'px');decor.style.setProperty('--screen-top',top+'px');
-    decor.style.setProperty('--screen-width',vw+'px');decor.style.setProperty('--screen-height',vh+'px');
-    decor.style.setProperty('--cabinet-left',(left-edge)+'px');decor.style.setProperty('--cabinet-top',(top-marquee-pad)+'px');
-    decor.style.setProperty('--cabinet-width',(vw+edge*2)+'px');decor.style.setProperty('--cabinet-height',(vh+marquee+deck+coins+pad*2)+'px');
-    decor.style.setProperty('--edge',edge+'px');decor.style.setProperty('--marquee',marquee+'px');decor.style.setProperty('--deck',deck+'px');decor.style.setProperty('--coins',coins+'px');decor.style.setProperty('--bezel-pad',pad+'px');
+    const body=vw+edge*2,lip=Math.min(16,deck*.17),rise=deck-lip,expansion=body?overhang*2/body:0,angle=36*Math.PI/180;
+    const perspective=expansion?rise*(1+expansion)*Math.tan(angle)/expansion:1000;
+    const values={'gutter':left,'screen-top':top,'screen-width':vw,'screen-height':vh,'cabinet-left':left-edge,'cabinet-top':top-marquee-upper,'cabinet-width':body,'cabinet-height':vh+fixed,'edge':edge,'marquee':marquee,'deck':deck,'coins':coins,'bezel-pad':upper,'bezel-top':upper,'bezel-bottom':lower,'deck-overhang':overhang,'deck-lip':lip,'deck-plane-height':rise*(1+expansion)/Math.cos(angle),'deck-perspective':perspective,'stick-ball':Math.min(38,Math.max(20,body*.04)),'button-size':Math.min(27,Math.max(13,body*.027))};
+    for(const [name,value] of Object.entries(values))decor.style.setProperty('--'+name,value+'px');
+
   }
   function apply() {
     decor.dataset.frame=picture.frame;decor.dataset.mask=comparison?'none':picture.mask;decor.dataset.filter=comparison?'original':picture.filter;
