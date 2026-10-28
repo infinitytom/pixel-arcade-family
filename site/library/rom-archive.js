@@ -1,7 +1,7 @@
 /* Adapt 7z arcade sets to ZIP inside the emulator's temporary filesystem. */
 (() => {
   'use strict';
-  const bound=new WeakSet(),signature=[55,122,188,175,39,28],encoder=new TextEncoder();
+  const bound=new WeakSet(),signature=[55,122,188,175,39,28],encoder=new TextEncoder(),assets=new URL('./',document.currentScript.src),parents=[];
   const table=Uint32Array.from({length:256},(_,n)=>{for(let j=0;j<8;j++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
   function crc32(bytes){let crc=0xffffffff;for(let i=0;i<bytes.length;i++)crc=table[(crc^bytes[i])&255]^(crc>>>8);return (crc^0xffffffff)>>>0;}
   function header(length){const bytes=new Uint8Array(length);return {bytes,view:new DataView(bytes.buffer)};}
@@ -24,9 +24,9 @@
     };
   }
   function progress(em,text){if(em.textElem)em.textElem.innerText=text;window.dispatchEvent(new CustomEvent('arcade-rom-progress',{detail:{text}}));}
-  async function convert(em){
-    const fs=em.gameManager.FS,source=em.fileName,probe=new Uint8Array(6),stream=fs.open(source,'r');try{fs.read(stream,probe,0,6,0);}finally{fs.close(stream);}
-    if(!signature.every((b,i)=>probe[i]===b))return;
+  async function convert(em,source=em.fileName){
+    const fs=em.gameManager.FS,probe=new Uint8Array(6),stream=fs.open(source,'r');try{fs.read(stream,probe,0,6,0);}finally{fs.close(stream);}
+    if(!signature.every((b,i)=>probe[i]===b))return source;
     progress(em,'正在准备 7z 兼容资源…');
     const compression=new window.EJS_COMPRESSION(em);let timer;
     const workerFile=await Promise.race([compression.getWorkerFile('7z'),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('7z 解压组件下载超时')),30000);})]).finally(()=>clearTimeout(timer));
@@ -43,16 +43,40 @@
         }catch(error){reject(error);}};
         worker.postMessage(raw,[raw.buffer]);
       });
-      writer.finish();fs.rename(temporary,target);if(source!==target)fs.unlink(source);em.fileName=target;
+      writer.finish();fs.rename(temporary,target);if(source!==target)fs.unlink(source);
       progress(em,'兼容资源已就绪，正在启动游戏…');
+      return target;
     }catch(error){writer.abort();throw error;}
     finally{clearTimeout(timer);worker?.terminate();URL.revokeObjectURL(url);}
+  }
+  async function prepareLibrary(){
+    const query=new URLSearchParams(location.search),core=query.get('core'),src=query.get('src')||'';
+    if(!['fbneo','mame2003_plus'].includes(core)||src.startsWith('blob:'))return;
+    const bios=query.get('bios')||'';if(core==='fbneo'&&/\/neogeo\.zip$/i.test(bios))window.EJS_externalFiles={...window.EJS_externalFiles,'/neogeo.zip':new URL(bios,location.origin).href};
+    const canonical=value=>decodeURIComponent(new URL(value,location.origin).pathname).replace(/^\/arcade\/roms\//,'/roms/');
+    try{
+      const response=await fetch(new URL('rom-parents.json',assets),{signal:AbortSignal.timeout(5000)});if(!response.ok)return;
+      const map=(await response.json())[core]||{},stem=canonical(src).split('/').pop().replace(/\.(zip|7z)$/i,'').toLowerCase();if(!map[stem])return;
+      const catalogResponse=await fetch(new URL('catalog.json',assets),{signal:AbortSignal.timeout(10000)});if(!catalogResponse.ok)return;
+      const games=(await catalogResponse.json()).games||[],seen=new Set([stem]);let parent=map[stem];
+      while(parent&&!seen.has(parent)&&seen.size<9){
+        seen.add(parent);if(!/^[a-z0-9_+-]+$/i.test(parent))break;
+        const candidates=games.filter(g=>typeof g.rom==='string'&&g.filename?.replace(/\.(zip|7z)$/i,'').toLowerCase()===parent&&canonical(g.rom)!==canonical(src));
+        const modified=g=>g.hack===true||/hack/i.test(g.category+' '+g.rom);
+        candidates.sort((a,b)=>Number(modified(a))-Number(modified(b))||a.rom.length-b.rom.length||a.rom.localeCompare(b.rom));
+        const selected=candidates[0];if(!selected)break;
+        let url=new URL(selected.rom,location.origin);if(url.origin!==location.origin||!/^\/(arcade\/)?roms\//.test(url.pathname))break;
+        if(src.startsWith('/arcade/roms/')&&url.pathname.startsWith('/roms/'))url=new URL('/arcade'+url.pathname,location.origin);
+        const extension=/\.7z$/i.test(url.pathname)?'.7z':'.zip',name='/'+parent+extension;
+        window.EJS_externalFiles={...window.EJS_externalFiles,[name]:url.href};if(!parents.includes(name))parents.push(name);parent=map[parent];
+      }
+    }catch(error){console.warn('父资源检查暂未完成：',error.message);}
   }
   function prepare(){
     const em=window.EJS_emulator;if(!em||bound.has(em)||typeof em.downloadRom!=='function')return;
     if(!['arcade','mame'].includes(em.getCore(true)))return;
     bound.add(em);const download=em.downloadRom;
-    em.downloadRom=async function(...args){await download.apply(this,args);try{await convert(this);}catch(error){this.arcadeStartError='7z 游戏资源准备失败：'+(error.message||'请检查资源是否完整后重试');this.startGameError(this.arcadeStartError);throw error;}};
+    em.downloadRom=async function(...args){await download.apply(this,args);try{this.fileName=await convert(this);for(const name of parents)await convert(this,name);}catch(error){this.arcadeStartError='游戏资源准备失败：'+(error.message||'请检查资源是否完整后重试');this.startGameError(this.arcadeStartError);throw error;}};
   }
-  window.ArcadeRomArchive={prepare};
+  window.ArcadeRomArchive={prepare,prepareLibrary};
 })();

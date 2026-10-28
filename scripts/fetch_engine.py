@@ -19,7 +19,7 @@ def apply_offline_patch(destination):
     content = source.read_text(encoding='utf-8')
     if content.count(original) != 1:
         raise RuntimeError('Unexpected upstream update-check implementation')
-    source.write_text(content.replace(original, '/data/version.json'), encoding='utf-8')
+    source.write_text(content.replace('fetch("'+original+'")', 'fetch(this.config.dataPath + "version.json")'), encoding='utf-8')
 
 
 def install(destination):

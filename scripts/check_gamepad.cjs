@@ -39,6 +39,7 @@ const server=http.createServer((req,res)=>{
     const focus=async s=>page.locator(s).first().focus();
     const active=()=>page.evaluate(()=>document.activeElement.id||document.activeElement.className);
     await page.goto(base+'/library/');await page.bringToFront();await page.waitForSelector('.cover');await down();
+    await page.evaluate(()=>ArcadeInput.setDevice(pads[0]));await page.reload();await page.waitForSelector('.cover');assert.equal(await page.evaluate(()=>ArcadeInput.getFamily()),'generic');await page.evaluate(()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})));assert.equal(await page.evaluate(()=>ArcadeInput.getFamily()),'generic','synthetic keyboard events do not change remembered device');
     await page.evaluate(()=>document.querySelector('#padGuide')?.close());await page.locator('.global-settings-button').click();await page.getByLabel('默认滤镜',{exact:true}).focus();await down();await press(14);assert.equal(await page.getByLabel('默认滤镜',{exact:true}).inputValue(),'crt','controller skips unavailable imported presets');await press(15);assert.equal(await page.getByLabel('默认滤镜',{exact:true}).inputValue(),'original');await page.locator('#arcadeSettings .settings-close').click();await down();
     await press(8);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);await press(1);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),false);
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await down();
@@ -123,7 +124,7 @@ const server=http.createServer((req,res)=>{
     await page.locator('#padGuide').getByRole('button',{name:'手柄设置',exact:true}).click();await page.locator('#padSetting-menu').selectOption('4,5');await press(1);
     assert.match(await page.locator('#padMenuHelp').innerText(),/LB \+ RB/);assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
     await page.getByRole('button',{name:'快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.stateSlot),[1,2,3]);
-    await page.getByRole('button',{name:'读取快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.loadedState),[1,2,3]);assert.equal(await page.evaluate(()=>EJS_emulator.paused),false);
+    await page.getByRole('button',{name:'读取快捷存档',exact:true}).focus();await press(0);assert.deepEqual(await page.evaluate(()=>window.loadedState),[1,2,3]);await page.waitForTimeout(100);await page.waitForFunction(()=>!window.ArcadeResumeCountdown?.active&&!EJS_emulator.paused);assert.equal(await page.evaluate(()=>EJS_emulator.paused),false);
     await page.locator('#padGuideButton').click();await page.locator('#padGuide').getByRole('button',{name:'手柄设置',exact:true}).click();await page.getByRole('button',{name:'恢复默认设置',exact:true}).click();await press(1);
     await down(8,9);await page.waitForFunction(()=>document.querySelector('#padGuide').open,null,{timeout:5000});await down();
     await page.getByRole('button',{name:'返回大厅…',exact:true}).focus();await press(0);

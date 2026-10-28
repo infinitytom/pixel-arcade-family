@@ -1,6 +1,6 @@
 # 更新游戏厅
 
-此页对应 v1.5.1。首次安装请先看 [飞牛部署教程](fnos.md)。更新程序不用重新导入 ROM。
+此页对应 v1.6.0。首次安装请先看 [飞牛部署教程](fnos.md)。更新程序不用重新导入 ROM。
 
 ## 更新前保留什么
 
@@ -170,3 +170,12 @@ Windows Edge 本地真实 EmulatorJS 4.2.3 与《恐龙快打》：验证了 MAM
 完整更新前端并重新构建，账号入口重新生成前端即可；缓存标识 `arcade16`、机台样式 `cabinet12`。一并部署新增 `library/rom-archive.js`，保留现有模拟器 `data/src/compression.js` 和 `data/compression/extract7z.js`。不需要更改原 ROM 的 7z 文件名或收藏、存档路径。
 
 本版不修改账号后端和数据目录。继续沿用整个 `/data` 的备份要求；关闭旧游戏页后刷新大厅，无需删除网站数据。
+
+
+## v1.6.0 父资源、倒计时与全屏入口
+
+同步更新完整前端，新增父关系元数据、暂停倒计时和全屏启动脚本；缓存标识 `arcade17`、机台样式 `cabinet13`。账号入口由相同源码重新生成，账号后端和数据格式不变。引擎保持 `engine-lock.json` 锁定的官方版本；更新检查使用当前配置的数据路径，兼容家庭版和账号前缀。
+
+Windows 桌面入口可在 PowerShell 运行 `./scripts/create_fullscreen_shortcut.ps1 -Url 'https://你的游戏厅地址/library/' -Name 'Pixel Arcade'`。NAS 账号入口使用实际 `/arcade/library/` 地址。生成的快捷方式用 Edge 应用窗口全屏打开，不含地址栏。已有同名快捷方式不会被覆盖；F11／Esc 可退出全屏。
+
+原 ROM、收藏、继续点路径保持不变。备份仍须包括整个持久账号目录；关闭旧游戏页后刷新，不需要清网站数据。

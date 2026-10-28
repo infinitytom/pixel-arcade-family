@@ -1,6 +1,8 @@
 /* Labels describe physical button positions; icon overrides never remap input. */
 (() => {
-  let pad=null,mode='keyboard',family='keyboard',lastSignature='',interactionSeen=false;
+  let remembered=null;try{const value=JSON.parse(localStorage.getItem('arcade-input-device-v1')||'null');if(['keyboard','mouse','touch','pad'].includes(value?.mode))remembered=value;}catch{}
+  let pad=remembered?.pad||null,mode=remembered?.mode||'keyboard',family='keyboard',lastSignature='',interactionSeen=!!remembered,lastStored='';
+  function persistDevice(){const value=JSON.stringify({mode,pad:pad?{id:pad.id,index:pad.index,mapping:pad.mapping}:null});if(value===lastStored)return;lastStored=value;try{localStorage.setItem('arcade-input-device-v1',value);}catch{}}
   const legend=document.createElement('div');legend.id='inputLegend';legend.setAttribute('aria-label','当前输入设备操作提示');
   (document.querySelector('.collection')||document.querySelector('header')||document.querySelector('.guide,.support')||document.body).prepend(legend);
   function identify(device){const id=device?.id||'';if(/dualsense|dualshock|playstation|sony|054c/i.test(id))return 'playstation';if(/nintendo|switch|joy-con|057e/i.test(id))return 'nintendo';if(/xbox|xinput|045e/i.test(id))return 'xbox';if(/arcade|fightstick|qanba|mayflash|hori.*stick/i.test(id))return 'arcade';return 'generic';}
@@ -30,13 +32,13 @@
     const entries=family==='keyboard'||family==='mouse'?[['↑↓←→','移动'],[values[0],'确认'],['Esc','返回 / 菜单'],['F','游戏全屏']]:family==='touch'?[['轻触','选择'],['菜单','设置']]:[['✥','移动'],[values[0],'确认'],[values[1],'返回'],[functionKeys().Start,'开始'],...(family==='playstation'?[[functionKeys().Select,'投币 / 指南']]:[])];
     for(const [value,meaning] of entries){const item=document.createElement('span');item.className='input-legend-item';item.append(glyph(value,family),document.createTextNode(meaning));legend.append(item);}decorate();
   }
-  document.addEventListener('keydown',()=>{interactionSeen=true;mode='keyboard';render();},true);
+  document.addEventListener('keydown',event=>{if(!event.isTrusted)return;interactionSeen=true;mode='keyboard';persistDevice();render();},true);
   // Switching legends can change height on narrow screens. Do it after release,
   // so the clicked control cannot move between pointerdown and click.
-  document.addEventListener('pointerdown',e=>{interactionSeen=true;mode=e.pointerType==='touch'?'touch':'mouse';},true);
+  document.addEventListener('pointerdown',e=>{if(!e.isTrusted)return;interactionSeen=true;mode=e.pointerType==='touch'?'touch':'mouse';persistDevice();},true);
   for(const event of ['pointerup','pointercancel'])document.addEventListener(event,()=>requestAnimationFrame(render),true);
   window.addEventListener('arcade-preferences-changed',()=>{lastSignature='';render();});window.addEventListener('arcade-preferences-ready',()=>{lastSignature='';render();});
-  window.ArcadeInput={setDevice(device){interactionSeen=true;pad=device;mode='pad';render();},setDetected(device){if(!interactionSeen){pad=device;mode='pad';render();}},identify,getFamily:()=>family,buttonLabels(device){const override=window.ArcadePreferences?.get().inputStyle||'auto',kind=override==='auto'?identify(device):override,v=layout(kind,device),keys=functionKeys(kind,device);return {BUTTON_1:v[0],BUTTON_2:v[1],BUTTON_3:v[2],BUTTON_4:v[3],SELECT:keys.Select,START:keys.Start,LEFT_TOP_SHOULDER:kind==='playstation'?'L1':kind==='nintendo'?'L':'LB',RIGHT_TOP_SHOULDER:kind==='playstation'?'R1':kind==='nintendo'?'R':'RB',DPAD_UP:'↑',DPAD_DOWN:'↓',DPAD_LEFT:'←',DPAD_RIGHT:'→'};}};render();
+  window.ArcadeInput={setDevice(device){interactionSeen=true;pad=device;mode='pad';persistDevice();render();},setDetected(device){if(!interactionSeen||mode==='pad'&&(pad?.id===device.id||!Array.from(navigator.getGamepads?.()||[]).some(p=>p?.id===pad?.id))){pad=device;mode='pad';render();}},getDevice:()=>pad,identify,getFamily:()=>family,buttonLabels(device){const override=window.ArcadePreferences?.get().inputStyle||'auto',kind=override==='auto'?identify(device):override,v=layout(kind,device),keys=functionKeys(kind,device);return {BUTTON_1:v[0],BUTTON_2:v[1],BUTTON_3:v[2],BUTTON_4:v[3],SELECT:keys.Select,START:keys.Start,LEFT_TOP_SHOULDER:kind==='playstation'?'L1':kind==='nintendo'?'L':'LB',RIGHT_TOP_SHOULDER:kind==='playstation'?'R1':kind==='nintendo'?'R':'RB',DPAD_UP:'↑',DPAD_DOWN:'↓',DPAD_LEFT:'←',DPAD_RIGHT:'→'};}};render();
   const observer=new MutationObserver(()=>decorate());observer.observe(document.body,{childList:true,subtree:true,characterData:true});
   if(!document.querySelector('#game,#grid')){
     document.body.classList.add('arcade-document');const wrapper=document.createElement('main');wrapper.className='document-shell';
