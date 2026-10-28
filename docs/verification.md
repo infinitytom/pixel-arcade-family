@@ -86,3 +86,9 @@ CI 状态可在 [Actions](https://github.com/infinitytom/pixel-arcade-family/act
 GitHub Actions 默认 runner 升至 Ubuntu 26.04，旧版锁定的 Playwright 不支持其依赖安装；本版本固定为 Ubuntu 24.04，保持原 Playwright 锁定版本不变。
 
 发布前 GitHub Actions [40525891700](https://github.com/infinitytom/pixel-arcade-family/actions/runs/40525891700) 已通过 Ubuntu 24.04 的单元测试、Chromium 导航、完整 Docker 构建及非 root 空库容器检查。继续入口的默认手柄焦点另通过真实核心回归检查。
+
+## v1.2.1 排序与存档频率回归
+
+排序回归覆盖鼠标首次点击、手柄确认／左右切换、上移搜索、下移游戏、返回和分区切换，分别检查 390／1600px，并继续跑原有导航流程。输入图标在鼠标松开后再更新，避免窄屏按下阶段发生版式移动。
+
+受控时钟验证启动几秒不保存、累计 3 分钟触发、反复打开菜单及长时间暂停不写入、后台不累计、回到页面不立即保存、离开前更新当前自动槽且不挤掉更早历史、重复离开不再写入，以及关闭自动保存时手动存档和独立名额。真实核心的历史选择、缩略图、保存成功音、全局设置、输入图标与账号路径回归通过。

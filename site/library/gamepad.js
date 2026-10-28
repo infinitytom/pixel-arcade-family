@@ -8,6 +8,8 @@
   let previous = new Set(), direction = '', repeatAt = 0, padIndex = null;
   let comboAt = 0, comboArmed = false, neutralRequired = true, returnFocus = null;
   let inputSeen=false, focusSuspended=false, lastDeviceName='';
+  let pointerFocusUntil=0;
+  document.addEventListener('pointerdown',()=>{pointerFocusUntil=performance.now()+250;},true);
   const samples=new Map();
   let chosenDevice='', deviceListKey='';
   const defaults={menu:'8,9',hold:1000,deadzone:.55,repeat:140,device:''};
@@ -68,6 +70,11 @@
   function move(dir) {
     const all = controls(), active = document.activeElement;
     if (!all.includes(active)) { focus(scope() === document ? firstGame() : all[0]); return; }
+    if(lobby&&scope()===document&&active.id==='sortControl'){
+      if(dir==='left'||dir==='right')active.dispatchEvent(new CustomEvent('arcade-sort-step',{detail:dir==='left'?-1:1}));
+      else focus(dir==='down'?firstGame():$('#search')||$('#views button'));
+      return;
+    }
     // A native select is changed directly; synthetic key events cannot open its menu.
     if (active.tagName === 'SELECT' && (dir === 'left' || dir === 'right')) {
       const delta = dir === 'left' || dir === 'up' ? -1 : 1;
@@ -170,7 +177,7 @@
       });
       guideAction('返回大厅…',()=>{
         guide.innerHTML='<h2>返回大厅？</h2><p>请先保存需要保留的游戏进度。</p>';
-        focus(guideAction('继续游戏（B）',()=>guide.close()));guideAction('确认返回大厅',async()=>{await window.ArcadeSession?.save();location.assign('/library/');});
+        focus(guideAction('继续游戏（B）',()=>guide.close()));guideAction('确认返回大厅',async()=>{await window.ArcadeSession?.save({reason:'checkpoint'});location.assign('/library/');});
       });
     }
     if(!guide.open)guide.showModal();focus(close);
@@ -271,9 +278,9 @@
     }
   }
   document.addEventListener('focusin',e=>{
-    if(!lobby || guide.open)return;
+    if(!lobby || guide.open || performance.now()<pointerFocusUntil)return;
     const n=e.target;
-    hint.textContent=n.closest?.('#detail')?'详情 · A 确认 · B 返回 · X 预览 · Y 收藏 · Start 开始 · 右摇杆滚动/快进':n.closest?.('#grid')?'选游戏 · A 详情 · Start 开始 · Y 收藏 · LB/RB 翻页 · X 搜索 · Select 指南':defaultHint;
+    hint.textContent=n.id==='sortControl'?'排列 · 左右切换 · A 切换 · ↑ 搜索 · ↓ 游戏 · B 返回游戏':n.closest?.('#detail')?'详情 · A 确认 · B 返回 · X 预览 · Y 收藏 · Start 开始 · 右摇杆滚动/快进':n.closest?.('#grid')?'选游戏 · A 详情 · Start 开始 · Y 收藏 · LB/RB 翻页 · X 搜索 · Select 指南':defaultHint;
   });
 
   let keyboard;
@@ -295,9 +302,9 @@
   function editQuery(value) { $('#search').value=value; $('#padQuery').textContent=value||'（空）'; $('#search').dispatchEvent(new Event('input',{bubbles:true})); }
   function openSearch() { editQuery($('#search').value); keyboard.showModal(); focus(keyboard.querySelector('button')); }
   function section(delta) {
-    const groups=[$('#views button'), $('#chips button.selected') || $('#chips button'), $('#sort'), firstGame(), $('#prev:not(:disabled)') || $('#next:not(:disabled)')];
+    const groups=[$('#views button'), $('#chips button.selected') || $('#chips button'), $('#sortControl') || $('#sort'), firstGame(), $('#prev:not(:disabled)') || $('#next:not(:disabled)')];
     const active=document.activeElement;
-    let i=active.closest('#views')?0:active.closest('#chips')?1:active.id==='sort'?2:active.closest('#grid')?3:active.closest('.pagination')?4:3;
+    let i=active.closest('#views')?0:active.closest('#chips')?1:/^sort(Control)?$/.test(active.id)?2:active.closest('#grid')?3:active.closest('.pagination')?4:3;
     for(let n=0;n<groups.length;n++){i=(i+delta+groups.length)%groups.length;if(visible(groups[i])){focus(groups[i]);return;}}
   }
   function act(button) {

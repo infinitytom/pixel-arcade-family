@@ -41,6 +41,15 @@ const server=http.createServer((req,res)=>{
     await press(8);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),true);await press(1);assert.equal(await page.locator('#padGuide').evaluate(n=>n.open),false);
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await down();
     assert.match(await page.locator('#padDeviceStatus').innerText(),/已识别设备/);assert.doesNotMatch(await page.locator('#padDeviceStatus').innerText(),/已就绪/);
+    // Sorting must not open a native OS popup or trap the controller focus.
+    for(const width of [390,1600]){
+      await page.setViewportSize({width,height:1000});await page.locator('#sortControl').click();await down();assert.equal(await page.locator('#sort').inputValue(),'title');
+      await press(14);assert.equal(await page.locator('#sort').inputValue(),'original');await press(15);assert.equal(await page.locator('#sort').inputValue(),'title');
+      await press(0);assert.equal(await page.locator('#sort').inputValue(),'original');await press(13);assert.match(await active(),/cover/);
+      await focus('#sortControl');await press(12);assert.equal(await page.locator('#search').evaluate(n=>n===document.activeElement),true);
+      await focus('#sortControl');await press(1);assert.match(await active(),/cover/);await focus('#sortControl');await press(7);assert.match(await active(),/cover/);
+    }
+    await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await down();await page.evaluate(()=>document.activeElement.blur());
     await press(15);assert.match(await active(),/cover/);
     await press(15);assert.equal(await page.locator('.cover').nth(1).evaluate(n=>n===document.activeElement),true);
     await press(0);assert.equal(await page.locator('#detail').evaluate(n=>n.open),true);assert.equal(await active(),'play');

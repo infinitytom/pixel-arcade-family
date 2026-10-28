@@ -4,7 +4,7 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
-v1.2.0：新增复古机台与滤镜、中文金手指指引、全局默认设置、可选历史存档与缩略图、低音量操作音、提前适配横竖屏比例和海报入场动画；修复多人手柄与选择框导航，统一设备图标和页面材质。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，已有安装请按 [更新部署指南](docs/update.md) 保留配置与存档并重新构建容器。
+v1.2.1：修复主页排序后的手柄导航和自动存档过频；包含 v1.2.0 的复古机台与滤镜、中文金手指指引、全局默认设置、可选历史存档与缩略图、低音量操作音、提前适配横竖屏比例和海报入场动画；修复多人手柄与选择框导航，统一设备图标和页面材质。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，已有安装请按 [更新部署指南](docs/update.md) 保留配置与存档并重新构建容器。
 
 [观看此前版本的更新演示（v1.1.2）](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
 
@@ -18,7 +18,7 @@ v1.2.0：新增复古机台与滤镜、中文金手指指引、全局默认设�
 
 宣传片采用实际界面录制与文字提示，配轻背景音乐，无配音和赞助码，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
 
-[设置与维护](docs/settings.md)介绍声音试听、存档缩略图、历史进度恢复和缓存维护；[v1.2.0 发布说明](docs/release-v1.2.0.md)包含完整变化与升级步骤。
+[设置与维护](docs/settings.md)介绍声音试听、存档缩略图、历史进度恢复和缓存维护；[v1.2.1 发布说明](docs/release-v1.2.1.md)包含完整变化与升级步骤。
 
 ## 快速部署
 
