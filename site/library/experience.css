@@ -155,3 +155,12 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 .deck-fascia{background-image:url('assets/cabinet-wear-v1.svg'),linear-gradient(#786a4a,#38372a 25%,#171c1b);border-top-color:#b2a07799}
 #arcadeDecoration[data-frame=neon] .deck-fascia{background-image:url('assets/cabinet-wear-v1.svg'),linear-gradient(#d5cba8,#a6ac8f 25%,#77846b);border-color:#797c62;border-top-color:#e2d9b8}
 .cabinet-bezel .screw{background:linear-gradient(45deg,#888477 38%,#292921 43% 56%,#66685a 61%);box-shadow:0 1px 2px #000c,0 0 0 1px #a99c6b44}
+
+/* Our accessible game menu replaces the native touch hamburger. */
+#game .ejs_virtualGamepad_open{display:none!important;pointer-events:none!important}
+
+/* Portrait cabinets size their sign from the cabinet, not the desktop viewport. */
+.cabinet-marquee{container-type:inline-size}
+.cabinet-marquee>div{min-width:0}
+.cabinet-marquee strong{font-size:clamp(10px,min(4.2cqw,calc(var(--marquee)*.4)),32px);white-space:nowrap}
+.cabinet-marquee small{font-size:clamp(5px,calc(var(--marquee)*.15),12px)}

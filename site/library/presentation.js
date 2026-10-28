@@ -55,6 +55,7 @@
     skip(){if(phase!=='approach')return false;clear('skipped');return true;},
     failed(){clear('failed');}
   };
+  window.addEventListener('arcade-rom-progress',e=>{if(running&&phase==='loading')label.textContent=e.detail.text;});
   skip.onclick=()=>window.ArcadePresentation.skip();
   window.addEventListener('keydown',e=>{if(phase!=='approach'||e.repeat||e.altKey||e.ctrlKey||e.metaKey||!['Enter',' ','Escape'].includes(e.key))return;if(e.isTrusted)window.ArcadeGameAudio?.recover(true);e.preventDefault();e.stopImmediatePropagation();window.ArcadePresentation.skip();},true);
   stage.addEventListener('pointerdown',e=>{if(phase!=='approach')return;pointerBlockedUntil=performance.now()+300;if(e.isTrusted)window.ArcadeGameAudio?.recover(true);e.preventDefault();e.stopImmediatePropagation();window.ArcadePresentation.skip();},true);
