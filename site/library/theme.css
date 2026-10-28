@@ -40,6 +40,6 @@ body:has(#grid) #gamepadHint,.arcade-document #gamepadHint{padding:0;border:0;ba
 
 .arcade-sound-enable{position:fixed;z-index:100100;bottom:20px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:12px 20px;border:1px solid #bfdc86;border-radius:14px;background:#202e19;color:#e7f4d2;box-shadow:0 8px 30px #0008;font:14px/1.6 system-ui;cursor:pointer}.arcade-sound-enable[hidden]{display:none}.arcade-sound-enable:focus-visible{outline:3px solid #d0ef88;outline-offset:4px}
 
-.preview-screen canvas[hidden]{display:none}.settings-preview[data-native-shader=on] .preview-screen canvas{image-rendering:auto;filter:none}.settings-preview:not([data-frame=none]) .preview-cabinet{transform:perspective(800px) rotateX(-3deg) rotateY(-9deg);transform-style:preserve-3d;box-shadow:inset 2px 0 #c39c6655,inset -3px 0 #100c0a,12px 6px 0 #33271c,15px 9px 15px #0008}
+.preview-screen canvas[hidden]{display:none}.settings-preview[data-native-shader=on] .preview-screen canvas{image-rendering:auto;filter:none}.settings-preview:not([data-frame=none]) .preview-cabinet{transform:none;box-shadow:inset 2px 0 #c39c6655,inset -2px 0 #100c0a,0 3px 0 2px #33271c,0 10px 15px #0008}
 
 @media(min-width:800px) and (min-height:800px){.settings-preview[data-native-shader=on] .preview-cabinet{width:340px}}
