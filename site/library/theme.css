@@ -43,3 +43,9 @@ body:has(#grid) #gamepadHint,.arcade-document #gamepadHint{padding:0;border:0;ba
 .preview-screen canvas[hidden]{display:none}.settings-preview[data-native-shader=on] .preview-screen canvas{image-rendering:auto;filter:none}.settings-preview:not([data-frame=none]) .preview-cabinet{transform:none;box-shadow:inset 2px 0 #c39c6655,inset -2px 0 #100c0a,0 3px 0 2px #33271c,0 10px 15px #0008}
 
 @media(min-width:800px) and (min-height:800px){.settings-preview[data-native-shader=on] .preview-cabinet{width:340px}}
+
+.settings-preview:not([data-frame=none]) .preview-screen{border-radius:10px;box-shadow:0 -2px 4px #000c,0 2px 1px #a6b19866,inset 0 0 20px #000}
+.settings-preview .preview-glass{border-radius:4px}
+.settings-preview[data-frame=none] .preview-glass{border-radius:0}
+
+.account-sync-indicator{font:11px/1.5 system-ui;color:#b9ce9d;padding:5px 9px;border:1px solid #a7c67b30;border-radius:8px;white-space:nowrap}.account-sync-indicator[data-phase="同步未完成"]{color:#e3bb87;border-color:#e3bb8755}

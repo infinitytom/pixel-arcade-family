@@ -10,13 +10,14 @@
     if(location.pathname.startsWith('/arcade/')){
       try{const r=await fetch('/arcade/auth/session',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(5000)});if(r.ok){const a=await r.json();if(typeof a.username!=='string'||!a.username)throw Error();scope='pixelarcade:'+encodeURIComponent(a.username)+':';}else identityReady=false;}catch{identityReady=false;}
     }
+    await window.ArcadeAccountSync?.ready;
     if(identityReady)try{const saved=JSON.parse(localStorage.getItem(key('preferences'))||'null');for(const name in schema)if(schema[name].includes(saved?.[name]))settings[name]=saved[name];}catch{}
     return settings;
   })();
-  function update(values){for(const name in values)if(schema[name]?.includes(values[name]))settings[name]=values[name];try{if(!identityReady)throw Error();localStorage.setItem(key('preferences'),JSON.stringify(settings));persisted=true;}catch{persisted=false;}window.dispatchEvent(new CustomEvent('arcade-preferences-changed'));return persisted;}
+  function update(values){for(const name in values)if(schema[name]?.includes(values[name]))settings[name]=values[name];try{if(!identityReady)throw Error();localStorage.setItem(key('preferences'),JSON.stringify(settings));persisted=true;}catch{persisted=false;}window.ArcadeAccountSync?.settings(Object.fromEntries(Object.entries(values).filter(([name,value])=>schema[name]?.includes(value))));window.dispatchEvent(new CustomEvent('arcade-preferences-changed'));return persisted;}
   const libraryKey=name=>location.pathname.startsWith('/arcade/')?key(name):'arcade-'+name;
   function libraryRecords(){if(!identityReady)throw Error('账号状态暂不可用');if(window.ArcadeLibraryRecords)return window.ArcadeLibraryRecords.get();const result={};for(const name of ['favorites','recent']){const value=JSON.parse(localStorage.getItem(libraryKey(name))||'[]');result[name]=Array.isArray(value)?value.filter(v=>typeof v==='string'):[];}return result;}
-  function restoreLibrary(value){if(!identityReady||!value||!['favorites','recent'].every(n=>Array.isArray(value[n])&&value[n].length<=10000&&value[n].every(v=>typeof v==='string'&&v.length<2048)))throw Error('备份格式不正确');const current=libraryRecords();for(const name of ['favorites','recent'])localStorage.setItem(libraryKey(name),JSON.stringify([...new Set([...current[name],...value[name]])]));}
+  function restoreLibrary(value){if(!identityReady||!value||!['favorites','recent'].every(n=>Array.isArray(value[n])&&value[n].length<=10000&&value[n].every(v=>typeof v==='string'&&v.length<2048)))throw Error('备份格式不正确');const current=libraryRecords();for(const name of ['favorites','recent']){localStorage.setItem(libraryKey(name),JSON.stringify([...new Set([...current[name],...value[name]])]));for(const id of value[name])if(!current[name].includes(id))name==='favorites'?window.ArcadeAccountSync?.favorite(id,true):window.ArcadeAccountSync?.recent(id);}}
   let packPromise;
   function shaderPack(){return packPromise??=(async()=>{try{const r=await fetch(new URL('private-shaders.json',assets),{cache:'no-cache',signal:AbortSignal.timeout(3000)});if(!r.ok)return null;const p=await r.json();if(p.format!=='pixelarcade-phosphor-v1')return null;for(const name of ['phosphor-dot.glslp','phosphor-glow.glslp']){const v=p.shaders?.[name];if(v?.shader?.type!=='text'||typeof v.shader.value!=='string'||!Array.isArray(v.resources)||v.resources.some(r=>!/^[A-Za-z0-9_.-]+$/.test(r.name)||r.type!=='text'||typeof r.value!=='string'))return null;}return p;}catch{return null;}})();}
   function gameKey(core,src){return key('game:'+core+':'+src);}
@@ -30,11 +31,18 @@
     try{const url=new URL(src,location.origin);canonical=prefix+url.pathname+url.search;decoded=prefix+decodeURI(url.pathname)+url.search;}catch{}
     return [...new Set([canonical,id,decoded])];
   }
-  async function progress(action,id,value){await ready;if(!identityReady)throw Error('账号状态暂不可用，继续点不会混用其他账号的数据');const database=await db('PixelArcade-progress-v1','snapshots'),ids=progressIDs(id);try{return await new Promise((resolve,reject)=>{
+  async function localProgress(action,id,value){await ready;if(!identityReady)throw Error('账号状态暂不可用，继续点不会混用其他账号的数据');const database=await db('PixelArcade-progress-v1','snapshots'),ids=progressIDs(id);try{return await new Promise((resolve,reject)=>{
     const tx=database.transaction('snapshots',action==='get'?'readonly':'readwrite'),store=tx.objectStore('snapshots');let result,index=0;
     const request=()=>{const req=action==='get'?store.get(key(ids[index])):store.put(value,key(ids[0]));req.onsuccess=()=>{result=req.result;if(action==='get'&&result===undefined&&++index<ids.length)request();};};request();
     tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
   });}finally{database.close();}}
+  async function progress(action,id,value){
+    if(action!=='get'){await localProgress(action,id,value);try{await window.ArcadeAccountSync?.queueSave(id,value);}catch(e){window.ArcadeAccountSync?.report(e,id);}return;}
+    const local=await localProgress('get',id),merged=await window.ArcadeAccountSync?.mergeSaves(id,local);
+    if(merged&&merged!==local){try{await localProgress('put',id,merged);}catch{}}
+    return merged??local;
+  }
+  window.addEventListener('arcade-account-data',e=>{for(const name in schema)if(schema[name].includes(e.detail.settings?.[name]))settings[name]=e.detail.settings[name];window.dispatchEvent(new CustomEvent('arcade-preferences-changed'));});
   const cacheStores=[['EmulatorJS-roms','rom'],['EmulatorJS-bios','bios'],['EmulatorJS-core','core'],['PixelArcade-core-downloads-v1','core']];
   async function cacheStore(name,store,clear){
     if(!window.indexedDB)return 0;
@@ -56,7 +64,7 @@
     try{const amounts=[];for(const [name,store] of cacheStores)amounts.push(await cacheStore(name,store,true));if(window.caches)for(const name of await caches.keys())if(name.startsWith('pixelarcade-cache-'))await caches.delete(name);try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}return amounts.reduce((a,b)=>a+b,0);}finally{cleaning=false;}
   }
   async function cleanIfDue(){await ready;if(!identityReady||playing||!document.querySelector('#grid')||document.hidden||settings.cacheDays==='0')return;const days=Number(settings.cacheDays);let last;try{last=Number(localStorage.getItem(key('cache-last-clean')));if(!last){localStorage.setItem(key('cache-last-clean'),String(Date.now()));return;}}catch{return;}if(Date.now()-last>=days*86400000){try{await clearCache();}catch{}}}
-  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade9',assets);document.head.append(theme);
+  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade10',assets);document.head.append(theme);
   const dialog=document.createElement('dialog');dialog.id='arcadeSettings';dialog.setAttribute('aria-label','游戏厅设置');document.body.append(dialog);let previous,resume=false;
   const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
   const labels={filter:'默认滤镜',strength:'默认效果强度',frame:'默认机台遮罩',mask:'默认屏幕纹理',cheats:'金手指功能',fullscreen:'开始游戏时全屏',resume:'继续上次游玩',autoSave:'自动保存继续点',cacheDays:'定期清理缓存',inputStyle:'操作图标风格',uiSound:'操作音效',uiVolume:'操作音量'};
@@ -87,9 +95,14 @@
     const cacheInfo=make('p','正在计算可清理缓存…','cache-info');dialog.append(cacheInfo);cacheBytes().then(bytes=>{cacheInfo.textContent='可清理引擎缓存：'+(bytes/1048576).toFixed(1)+' MB';}).catch(()=>{cacheInfo.textContent='浏览器暂时无法统计缓存。';});
     const preload=make('button','预加载游戏库所需核心');preload.type='button';preload.onclick=async()=>{preload.disabled=true;try{if(!window.ArcadeCoreCache)throw Error('请刷新页面后重试');const result=await ArcadeCoreCache.preload(text=>cacheInfo.textContent=text);cacheInfo.textContent='已准备 '+result.count+' 个核心，共 '+(result.bytes/1048576).toFixed(1)+' MB。下次启动将复用，可随时清理。';}catch(e){cacheInfo.textContent=e.message||'预加载失败，请重试。';}finally{preload.disabled=false;}};dialog.append(preload,make('p','预加载只下载当前游戏库需要的默认核心，不包含游戏 ROM；查看游戏详情也会提前准备核心。核心更新时会重新下载。','ui-muted'));
     const clear=make('button','立即清理下载缓存');clear.type='button';clear.onclick=async()=>{clear.disabled=true;try{const bytes=await clearCache();cacheInfo.textContent='已清理 '+(bytes/1048576).toFixed(1)+' MB；下次打开游戏会重新下载所需文件。';}catch(e){cacheInfo.textContent=e.message||'清理失败，请稍后再试。';}finally{clear.disabled=false;}};dialog.append(clear,status);
+    const sync=window.ArcadeAccountSync;
+    const syncSection=make('section','','settings-section');syncSection.append(make('h3','账号同步'));
+    const syncNote=make('p','','ui-muted');syncNote.id='accountSyncStatus';
+    const syncText=()=>{const s=sync?.status();syncNote.textContent=s?.enabled?'账号 '+(s.account||'未连接')+' · '+s.phase+(s.lastSync?' · 上次同步 '+new Date(s.lastSync).toLocaleTimeString('zh-CN'):'')+(s.error?'：'+s.error:''):'本机模式：此入口未启用账号服务。';};syncText();syncSection.append(syncNote);
+    const retry=make('button','立即同步并重试');retry.type='button';retry.disabled=!sync?.status().enabled;retry.onclick=async()=>{retry.disabled=true;try{await sync.retry();}finally{retry.disabled=false;syncText();}};syncSection.append(retry,make('p','收藏、历史、全局及单个游戏画面设置、存档与缩略图随账号保存到 NAS。首次连接会合并本机已有记录；离线修改保留待上传。手柄设备编号和玩家分配保留在本机。手动、自动存档各保留 3 份；单份上限 16 MB，账号云存档上限 512 MB。请确认显示「已同步」后再清除浏览器网站数据。','ui-muted'));dialog.append(syncSection);
     const librarySection=make('section','','settings-section');librarySection.append(make('h3','收藏与游玩历史'));
     let records;try{records=libraryRecords();}catch{}
-    librarySection.append(make('p','当前入口：'+location.origin+' · '+(scope==='pixelarcade:local:'?'本地浏览器':decodeURIComponent(scope.slice(11,-1)))+'；收藏 '+(records?.favorites.length??'不可用')+' 条，最近游玩 '+(records?.recent.length??'不可用')+' 条。收藏、历史、存档和设置保存在此浏览器，尚未上传服务器或跨设备同步；登录仅区分本机账号。换域名、端口或浏览器会使用独立数据。清理下载缓存会保留记录；浏览器删除网站数据会同时删除本地记录与本地备份。导出的收藏历史备份不包含游戏存档。','ui-muted'));
+    librarySection.append(make('p','当前入口：'+location.origin+' · '+(scope==='pixelarcade:local:'?'本地浏览器':decodeURIComponent(scope.slice(11,-1)))+'；收藏 '+(records?.favorites.length??'不可用')+' 条，最近游玩 '+(records?.recent.length??'不可用')+' 条。本机保留离线副本；账号入口的同步情况见上方。下载缓存清理会保留记录；浏览器删除网站数据会清除尚未上传的修改和本地备份。导出的收藏历史备份不包含游戏存档。','ui-muted'));
     const exportButton=make('button','导出收藏与历史备份');exportButton.type='button';exportButton.onclick=()=>{try{const url=URL.createObjectURL(new Blob([JSON.stringify({format:'pixelarcade-library-v1',scope,...libraryRecords()},null,2)],{type:'application/json'})),a=make('a');a.href=url;a.download='pixelarcade-library-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='已导出收藏和历史；游戏存档请在游戏内单独导出。';}catch{status.textContent='导出失败，浏览器存储暂不可用。';}};
     const importButton=make('button','导入收藏与历史备份'),file=make('input');importButton.type='button';file.type='file';file.accept='.json,application/json';file.hidden=true;importButton.onclick=()=>file.click();file.onchange=async()=>{try{if(!file.files[0])return;if(file.files[0].size>4*1024*1024)throw Error('备份文件过大');const value=JSON.parse(await file.files[0].text());if(value.format!=='pixelarcade-library-v1'||value.scope!==scope)throw Error('请选择当前账号的收藏历史备份');restoreLibrary(value);location.reload();}catch(e){status.textContent=e.message||'导入失败';}finally{file.value='';}};
     librarySection.append(exportButton,importButton,file);
@@ -97,11 +110,12 @@
     dialog.append(librarySection);
     const close=make('button','完成');close.type='button';close.className='primary';close.onclick=()=>dialog.close();dialog.append(close);
   }
+  window.addEventListener('arcade-sync-status',e=>{const n=document.querySelector('#accountSyncStatus');if(n)n.textContent='账号 '+(e.detail.account||'未连接')+' · '+e.detail.phase+(e.detail.error?'：'+e.detail.error:'');});
   async function open(){if(dialog.open)return;previous=document.activeElement;const em=window.EJS_emulator;resume=!!(em?.started&&!em.paused&&!document.querySelector('#padGuide[open]'));if(resume)em.pause();await render();dialog.showModal();requestAnimationFrame(()=>dialog.querySelector('#settingsPreview')?.refresh());dialog.querySelector('select')?.focus();}
   dialog.addEventListener('close',()=>{dialog.querySelector('#settingsPreview')?.destroy();if(resume)window.EJS_emulator?.play();resume=false;const target=previous?.isConnected?previous:document.querySelector('#padGuide[open] button,#padSettings[open] select');target?.focus();window.dispatchEvent(new CustomEvent('arcade-settings-closed'));});
   dialog.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();dialog.close();}});
   if(!playing){const b=make('button','游戏厅设置','global-settings-button');b.type='button';b.onclick=open;const header=document.querySelector('main>header');if(header)header.append(b);else (document.querySelector('.guide,.support')||document.body).prepend(b);}
-  function resumePoints(saved){const seen=new Set();return [saved,...(Array.isArray(saved?.history)?saved.history:[])].filter(p=>p?.state?.byteLength).sort((a,b)=>b.updatedAt-a.updatedAt).filter(p=>{if(seen.has(p.updatedAt))return false;seen.add(p.updatedAt);return true;}).map(p=>({state:p.state,updatedAt:p.updatedAt,source:p.source||'legacy',core:p.core,src:p.src,thumbnail:p.thumbnail,sessionId:p.sessionId,reason:p.reason}));}
+  function resumePoints(saved){const seen=new Set(),list=[saved,...(Array.isArray(saved?.history)?saved.history:[])].filter(p=>p?.state?.byteLength).sort((a,b)=>b.updatedAt-a.updatedAt).filter(p=>{const id=p.updatedAt+':'+(p.sessionId||'');if(seen.has(id))return false;seen.add(id);return true;}).map(p=>({state:p.state,updatedAt:p.updatedAt,source:p.source||'legacy',core:p.core,src:p.src,thumbnail:p.thumbnail,sessionId:p.sessionId,reason:p.reason}));const counts=new Map();for(const p of list)counts.set(p.updatedAt,(counts.get(p.updatedAt)||0)+1);return list.map(p=>({...p,selectionKey:counts.get(p.updatedAt)>1?p.updatedAt+':'+(p.sessionId||''):String(p.updatedAt)}));}
   const resumeLabel=p=>(p.source==='manual'?'手动存档':p.source==='auto'?(p.reason==='checkpoint'?'离开前自动保存':p.reason==='periodic'?'定时自动存档':'自动存档'):'旧继续点')+' · '+new Date(p.updatedAt).toLocaleString('zh-CN');
   function resumePreview(){const figure=make('figure','','resume-preview'),image=make('img'),empty=make('span','此存档暂无画面预览','resume-preview-empty'),caption=make('figcaption');image.hidden=true;image.decoding='async';figure.append(image,empty,caption);image.onerror=()=>{image.hidden=true;empty.hidden=false;};figure.update=point=>{const valid=typeof point?.thumbnail==='string'&&point.thumbnail.length<100000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(point.thumbnail);image.hidden=!valid;empty.hidden=!!valid;if(valid){image.src=point.thumbnail;image.alt=resumeLabel(point)+'的游戏画面';}else image.removeAttribute('src');caption.textContent=point?resumeLabel(point):'选择一份存档查看画面';};figure.update(null);return figure;}
   window.ArcadePreferences={ready,get:()=>({...settings}),update,key,gameKey,open,shaderPack,progress,resumePoints,resumeLabel,resumePreview,cacheBytes,clearCache};

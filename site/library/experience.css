@@ -92,3 +92,9 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 #arcadeDecoration[data-frame=neon] .cabinet-bezel{border-image:linear-gradient(90deg,#bfc6bb,#414b43 8%,#202925 18%,#202925 82%,#414b43 92%,#bfc6bb) 1}
 
 .arcade-native-preview{z-index:1;position:absolute;left:var(--gutter);top:var(--screen-top);width:var(--screen-width);height:var(--screen-height);display:block;filter:none;image-rendering:auto}.arcade-native-preview[hidden]{display:none}
+
+/* Rounded glass and the game share one opening, including pause previews. */
+#playerStage:not([data-cabinet=none]) #game{border-radius:var(--screen-radius,12px);overflow:hidden;background:#050606}
+#playerStage[data-cabinet=none] #game{border-radius:0}
+.arcade-glass,.arcade-mask,.arcade-preview,.arcade-native-preview{border-radius:var(--screen-radius,0px)}
+#arcadeDecoration:not([data-frame=none]) .arcade-glass:after{content:'';position:absolute;inset:-4px;border:4px solid #101313;border-radius:calc(var(--screen-radius,12px) + 4px);box-shadow:0 -2px 3px #000d,0 2px 1px #b2bca54d,inset 0 2px 3px #000b,inset 0 -1px 1px #c4d2c229;pointer-events:none}

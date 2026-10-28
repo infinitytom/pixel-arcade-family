@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: pip install -r requirements-account-test.txt
       - run: python -m unittest discover -s tests -v
       - uses: actions/setup-node@v4
         with:
@@ -23,6 +24,12 @@ jobs:
           npx playwright install --with-deps chromium
           node scripts/check_gamepad.cjs
           node scripts/check_game_audio.cjs
+          python scripts/sync_test_server.py &
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18896/health; then break; fi
+            sleep 1
+          done
+          BROWSER_CHANNEL=chromium node scripts/check_account_sync.cjs
       - name: Build clean Docker image
         run: docker compose build
       - name: Test empty-library container as non-root

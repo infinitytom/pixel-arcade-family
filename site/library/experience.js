@@ -20,7 +20,7 @@
   const validRatio=n=>Number.isFinite(n)&&n>=.2&&n<=5;
   let preloadRatio=validRatio(Number(params.get('aspect')))?Number(params.get('aspect')):4/3,ratioKey='',lastMeasured=0;
   try {const saved = JSON.parse(localStorage.getItem(key));for(const k in defaults)if(choices[k].some(([v])=>v===saved?.[k]))picture[k]=saved[k];} catch {}
-  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet6',assets);document.head.append(style);
+  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet7',assets);document.head.append(style);
   const stage = document.querySelector('#playerStage');
   const decor = document.createElement('div');decor.id='arcadeDecoration';decor.setAttribute('aria-hidden','true');
   decor.innerHTML='<div class="arcade-cabinet"><div class="cabinet-marquee"><i></i><div><small>像素放映厅</small><strong>VIDEO ARCADE</strong></div><i></i></div><div class="cabinet-bezel"><span class="bezel-caption">HIGH SCORE · ONE MORE ROUND</span><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i></div><div class="cabinet-deck"><div class="deck-player"><span>1 PLAYER</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div><div class="deck-player"><span>2 PLAYERS</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div></div><div class="cabinet-coins"><span>请投入代币<br><small>INSERT COIN</small></span><i></i><i></i><span>再来一局<br><small>PLAY AT HOME</small></span></div></div><img class="arcade-preview" alt="" hidden><div class="arcade-glass"></div><div class="arcade-mask"></div>';
@@ -79,7 +79,7 @@
     const pad=cabinet?Math.min(22,h*.025):0;
     const vw=Math.min(Math.max(1,w-edge*2-(cabinet?Math.min(40,w*.04):0)),Math.max(1,h-marquee-deck-coins-pad*2)*ratio),vh=vw/ratio;
     const left=(w-vw)/2,top=(h-vh-marquee-deck-coins-pad*2)/2+marquee+pad;
-    stage.dataset.cabinet=picture.frame;
+    stage.dataset.cabinet=picture.frame;stage.style.setProperty('--screen-radius',(cabinet?Math.min(18,Math.min(vw,vh)*.025):0)+'px');
     Object.assign(document.querySelector('#game').style,{position:'absolute',left:(cabinet?left:0)+'px',top:(cabinet?top:0)+'px',width:(cabinet?vw:w)+'px',height:(cabinet?vh:h)+'px'});
     decor.style.setProperty('--gutter',left+'px');decor.style.setProperty('--screen-top',top+'px');
     decor.style.setProperty('--screen-width',vw+'px');decor.style.setProperty('--screen-height',vh+'px');
@@ -100,7 +100,8 @@
     geometry();
     if(em?.paused&&document.querySelector('#padGuide[data-experience=true][open] [aria-label="画面滤镜"]'))snapshotPreview();
   }
-  function save() {try{localStorage.setItem(key,JSON.stringify(picture));storageOK=true;}catch{storageOK=false;}apply();}
+  function save() {window.ArcadeAccountSync?.picture(key.slice(window.ArcadePreferences.key('').length),picture);try{localStorage.setItem(key,JSON.stringify(picture));storageOK=true;}catch{storageOK=false;}apply();}
+  window.addEventListener('arcade-account-data',()=>{try{const saved=JSON.parse(localStorage.getItem(key)||'null'),global=ArcadePreferences.get();for(const name of ['filter','frame','mask','strength'])picture[name]=choices[name].some(([v])=>v===saved?.[name])?saved[name]:global[name];apply();}catch{}});
   new ResizeObserver(geometry).observe(stage);
   setInterval(()=>{const em=window.EJS_emulator;if(em?.started){if(appliedEmulator!==em)apply();else geometry();}},700);
   apply();
@@ -226,7 +227,7 @@
     const compare=button(container,'对比原画',()=>{comparison=!comparison;apply();compare.textContent=comparison?'正在看原画 · 返回滤镜':'对比原画';compare.setAttribute('aria-pressed',String(comparison));});compare.setAttribute('aria-pressed','false');
     snapshotPreview().then(ready=>{if(!ready&&!snapshotBytes&&compare.isConnected){compare.disabled=true;compare.textContent='当前核心暂不支持原画对比';}});
     button(container,'恢复默认画面',()=>{picture={...defaults};save();picturePage();});
-    button(container,'使用全局默认',()=>{try{localStorage.removeItem(key);}catch{}const g=window.ArcadePreferences?.get()||defaults;for(const name of ['filter','frame','mask','strength'])picture[name]=g[name];apply();picturePage();});
+    button(container,'使用全局默认',()=>{window.ArcadeAccountSync?.picture(key.slice(window.ArcadePreferences.key('').length),null);try{localStorage.removeItem(key);}catch{}const g=window.ArcadePreferences?.get()||defaults;for(const name of ['filter','frame','mask','strength'])picture[name]=g[name];apply();picturePage();});
     button(container,'金手指 →',cheatPage);button(container,'← 返回游戏菜单',back);
   }
   function cheatPage() {clearPreview();page('金手指','按当前游戏和模拟核心显示可用项目。');cheats(container);button(container,'继续游戏（B / Esc）',()=>container.close());button(container,'← 画面与边框',picturePage);button(container,'← 返回游戏菜单',back);}
