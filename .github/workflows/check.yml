@@ -38,6 +38,8 @@ jobs:
           curl --fail --silent http://127.0.0.1:18888/library/game-layouts.json | python -c 'import json,sys; data=json.load(sys.stdin); assert data["mame2003_plus"]["1942"] == 0.75; assert data["fbneo"]["darius"] == 4'
           curl --fail --silent http://127.0.0.1:18888/library/sounds.js > /dev/null
           curl --fail --silent http://127.0.0.1:18888/library/presentation.js > /dev/null
+          DEMO_URL=http://127.0.0.1:18888 BROWSER_CHANNEL=chromium node scripts/check_sounds.cjs
+          DEMO_URL=http://127.0.0.1:18888 BROWSER_CHANNEL=chromium node scripts/check_core_cache.cjs
           docker compose exec -T arcade id
           docker compose logs --tail=30
       - if: always()

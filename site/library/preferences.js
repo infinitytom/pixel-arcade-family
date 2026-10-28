@@ -14,6 +14,9 @@
     return settings;
   })();
   function update(values){for(const name in values)if(schema[name]?.includes(values[name]))settings[name]=values[name];try{if(!identityReady)throw Error();localStorage.setItem(key('preferences'),JSON.stringify(settings));persisted=true;}catch{persisted=false;}window.dispatchEvent(new CustomEvent('arcade-preferences-changed'));return persisted;}
+  const libraryKey=name=>location.pathname.startsWith('/arcade/')?key(name):'arcade-'+name;
+  function libraryRecords(){if(!identityReady)throw Error('账号状态暂不可用');const result={};for(const name of ['favorites','recent']){const value=JSON.parse(localStorage.getItem(libraryKey(name))||'[]');result[name]=Array.isArray(value)?value.filter(v=>typeof v==='string'):[];}return result;}
+  function restoreLibrary(value){if(!identityReady||!value||!['favorites','recent'].every(n=>Array.isArray(value[n])&&value[n].length<=10000&&value[n].every(v=>typeof v==='string'&&v.length<2048)))throw Error('备份格式不正确');const current=libraryRecords();for(const name of ['favorites','recent'])localStorage.setItem(libraryKey(name),JSON.stringify([...new Set([...current[name],...value[name]])]));}
   function gameKey(core,src){return key('game:'+core+':'+src);}
   function db(name,store){return new Promise((resolve,reject)=>{
     const request=indexedDB.open(name,1);request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(store))request.result.createObjectStore(store);};request.onerror=()=>reject(request.error);request.onblocked=()=>reject(Error('其他页面正在使用存储'));request.onsuccess=()=>resolve(request.result);
@@ -30,7 +33,7 @@
     const request=()=>{const req=action==='get'?store.get(key(ids[index])):store.put(value,key(ids[0]));req.onsuccess=()=>{result=req.result;if(action==='get'&&result===undefined&&++index<ids.length)request();};};request();
     tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
   });}finally{database.close();}}
-  const cacheStores=[['EmulatorJS-roms','rom'],['EmulatorJS-bios','bios'],['EmulatorJS-core','core']];
+  const cacheStores=[['EmulatorJS-roms','rom'],['EmulatorJS-bios','bios'],['EmulatorJS-core','core'],['PixelArcade-core-downloads-v1','core']];
   async function cacheStore(name,store,clear){
     if(!window.indexedDB)return 0;
     return new Promise((resolve,reject)=>{
@@ -47,11 +50,11 @@
   async function cacheBytes(){const amounts=await Promise.all(cacheStores.map(([name,store])=>cacheStore(name,store,false)));return amounts.reduce((a,b)=>a+b,0);}
   let cleaning=false;
   async function clearCache(){
-    if(cleaning)throw Error('正在清理，请稍候');if(playing&&window.EJS_emulator?.started)throw Error('请回大厅后清理缓存');cleaning=true;
+    if(cleaning)throw Error('正在清理，请稍候');if(window.ArcadeCoreCache?.busy)throw Error('核心正在下载，请完成后再清理');if(playing&&window.EJS_emulator?.started)throw Error('请回大厅后清理缓存');cleaning=true;
     try{const amounts=[];for(const [name,store] of cacheStores)amounts.push(await cacheStore(name,store,true));if(window.caches)for(const name of await caches.keys())if(name.startsWith('pixelarcade-cache-'))await caches.delete(name);try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}return amounts.reduce((a,b)=>a+b,0);}finally{cleaning=false;}
   }
   async function cleanIfDue(){await ready;if(!identityReady||playing||!document.querySelector('#grid')||document.hidden||settings.cacheDays==='0')return;const days=Number(settings.cacheDays);let last;try{last=Number(localStorage.getItem(key('cache-last-clean')));if(!last){localStorage.setItem(key('cache-last-clean'),String(Date.now()));return;}}catch{return;}if(Date.now()-last>=days*86400000){try{await clearCache();}catch{}}}
-  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade6',assets);document.head.append(theme);
+  const theme=document.createElement('link');theme.rel='stylesheet';theme.href=new URL('theme.css?v=arcade7',assets);document.head.append(theme);
   const dialog=document.createElement('dialog');dialog.id='arcadeSettings';dialog.setAttribute('aria-label','游戏厅设置');document.body.append(dialog);let previous,resume=false;
   const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
   const labels={filter:'默认滤镜',strength:'默认效果强度',frame:'默认机台遮罩',mask:'默认屏幕纹理',cheats:'金手指功能',fullscreen:'开始游戏时全屏',resume:'继续上次游玩',autoSave:'自动保存继续点',cacheDays:'定期清理缓存',inputStyle:'操作图标风格',uiSound:'操作音效',uiVolume:'操作音量'};
@@ -74,12 +77,21 @@
     const status=make('p','','settings-status');status.setAttribute('role','status');
     for(const [title,keys] of [['画面与辅助',['filter','strength','frame','mask','cheats']],['启动与输入',['fullscreen','resume','autoSave','inputStyle']],['声音',['uiSound','uiVolume']],['缓存维护',['cacheDays']]]){
       const section=make('section','','settings-section');section.append(make('h3',title));
-      for(const name of keys){const label=make('label',labels[name],'settings-field'),select=make('select');select.setAttribute('aria-label',labels[name]);schema[name].forEach((v,i)=>select.add(new Option(names[name][i],v)));select.value=settings[name];select.onchange=()=>{const old=settings.cacheDays;update({[name]:select.value});preview.refresh();if(name==='cacheDays'&&old==='0')try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}status.textContent=persisted?'已保存。游戏内已有单独画面设置时，可选择「使用全局默认」。':'浏览器无法保存，设置仅本次有效。';};label.append(select);section.append(label);}if(title==='声音'){const test=make('button','试听操作音');test.type='button';test.dataset.sound='none';test.onclick=()=>{status.textContent=settings.uiSound==='off'?'音效已关闭，请先开启。':window.ArcadeSound?.preview()?'正在试听：移动、确认、返回、启动、存档成功与失败。':'请先点击页面或按键，浏览器允许声音后再试听。';};section.append(test,make('p','首次点击页面或按键后启用声音。默认低音量，长按移动限频；游戏画面内的动作不播放大厅操作音，自动存档成功保持安静。','ui-muted'));}dialog.append(section);
+      for(const name of keys){const label=make('label',labels[name],'settings-field'),select=make('select');select.setAttribute('aria-label',labels[name]);schema[name].forEach((v,i)=>select.add(new Option(names[name][i],v)));select.value=settings[name];select.onchange=()=>{const old=settings.cacheDays;update({[name]:select.value});preview.refresh();if(name==='cacheDays'&&old==='0')try{localStorage.setItem(key('cache-last-clean'),String(Date.now()));}catch{}status.textContent=persisted?'已保存。游戏内已有单独画面设置时，可选择「使用全局默认」。':'浏览器无法保存，设置仅本次有效。';};label.append(select);section.append(label);}if(title==='声音'){const test=make('button','试听操作音');test.type='button';test.dataset.sound='none';test.onclick=async()=>{status.textContent=settings.uiSound==='off'?'音效已关闭，请先开启。':await window.ArcadeSound?.preview()?'正在试听：移动、确认、返回、启动、存档成功与失败。':'请先点击页面或按键，浏览器允许声音后再试听。';};section.append(test,make('p','只用手柄时，若提示未启用声音，请先用鼠标点击一次页面或按一下键盘。试听无声时请检查标签页静音及系统音量。长按移动限频；游戏画面内的动作不播放大厅操作音，自动存档成功保持安静。','ui-muted'));}dialog.append(section);
     }
     dialog.append(make('p','浏览器不允许自动进入全屏时，会先填满当前窗口。继续点按游戏与核心分别保存，实际游玩满 3 分钟后定时保存，暂停和后台不计时；打开菜单不保存。返回大厅或离开页面会更新本局最近的自动恢复点，避免重复记录。继续点不替代重要的手动存档。','ui-muted'));
     dialog.append(make('p','缓存清理仅删除可重新下载的 ROM、BIOS 和核心缓存，不删除存档、继续点、收藏、最近记录或按键设置。浏览器的全局 HTTP 缓存不在此范围内；定期清理只在打开大厅时执行。','ui-muted'));
     const cacheInfo=make('p','正在计算可清理缓存…','cache-info');dialog.append(cacheInfo);cacheBytes().then(bytes=>{cacheInfo.textContent='可清理引擎缓存：'+(bytes/1048576).toFixed(1)+' MB';}).catch(()=>{cacheInfo.textContent='浏览器暂时无法统计缓存。';});
+    const preload=make('button','预加载游戏库所需核心');preload.type='button';preload.onclick=async()=>{preload.disabled=true;try{if(!window.ArcadeCoreCache)throw Error('请刷新页面后重试');const result=await ArcadeCoreCache.preload(text=>cacheInfo.textContent=text);cacheInfo.textContent='已准备 '+result.count+' 个核心，共 '+(result.bytes/1048576).toFixed(1)+' MB。下次启动将复用，可随时清理。';}catch(e){cacheInfo.textContent=e.message||'预加载失败，请重试。';}finally{preload.disabled=false;}};dialog.append(preload,make('p','预加载只下载当前游戏库需要的默认核心，不包含游戏 ROM；查看游戏详情也会提前准备核心。核心更新时会重新下载。','ui-muted'));
     const clear=make('button','立即清理下载缓存');clear.type='button';clear.onclick=async()=>{clear.disabled=true;try{const bytes=await clearCache();cacheInfo.textContent='已清理 '+(bytes/1048576).toFixed(1)+' MB；下次打开游戏会重新下载所需文件。';}catch(e){cacheInfo.textContent=e.message||'清理失败，请稍后再试。';}finally{clear.disabled=false;}};dialog.append(clear,status);
+    const librarySection=make('section','','settings-section');librarySection.append(make('h3','收藏与游玩历史'));
+    let records;try{records=libraryRecords();}catch{}
+    librarySection.append(make('p','当前入口：'+location.origin+' · '+(scope==='pixelarcade:local:'?'本地浏览器':decodeURIComponent(scope.slice(11,-1)))+'；收藏 '+(records?.favorites.length??'不可用')+' 条，最近游玩 '+(records?.recent.length??'不可用')+' 条。记录保存在此浏览器，换域名、端口、浏览器或账号会使用不同的数据。清理下载缓存会保留这些记录。','ui-muted'));
+    const exportButton=make('button','导出收藏与历史备份');exportButton.type='button';exportButton.onclick=()=>{try{const url=URL.createObjectURL(new Blob([JSON.stringify({format:'pixelarcade-library-v1',scope,...libraryRecords()},null,2)],{type:'application/json'})),a=make('a');a.href=url;a.download='pixelarcade-library-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='已导出收藏和历史；游戏存档请在游戏内单独导出。';}catch{status.textContent='导出失败，浏览器存储暂不可用。';}};
+    const importButton=make('button','导入收藏与历史备份'),file=make('input');importButton.type='button';file.type='file';file.accept='.json,application/json';file.hidden=true;importButton.onclick=()=>file.click();file.onchange=async()=>{try{if(!file.files[0])return;if(file.files[0].size>4*1024*1024)throw Error('备份文件过大');const value=JSON.parse(await file.files[0].text());if(value.format!=='pixelarcade-library-v1'||value.scope!==scope)throw Error('请选择当前账号的收藏历史备份');restoreLibrary(value);location.reload();}catch(e){status.textContent=e.message||'导入失败';}finally{file.value='';}};
+    librarySection.append(exportButton,importButton,file);
+    try{const saved=JSON.parse(localStorage.getItem(libraryKey('library-backup'))||'null');if(saved?.favorites?.length||saved?.recent?.length){const recover=make('button','合并恢复上次收藏与历史');recover.type='button';recover.onclick=()=>{try{restoreLibrary(saved);location.reload();}catch(e){status.textContent=e.message;}};librarySection.append(recover,make('p','可用本地备份：收藏 '+saved.favorites.length+' 条，历史 '+saved.recent.length+' 条。恢复会合并，不覆盖当前记录。','ui-muted'));}}catch{}
+    dialog.append(librarySection);
     const close=make('button','完成');close.type='button';close.className='primary';close.onclick=()=>dialog.close();dialog.append(close);
   }
   async function open(){if(dialog.open)return;previous=document.activeElement;const em=window.EJS_emulator;resume=!!(em?.started&&!em.paused&&!document.querySelector('#padGuide[open]'));if(resume)em.pause();await render();dialog.showModal();dialog.querySelector('select')?.focus();}

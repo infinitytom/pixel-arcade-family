@@ -6,7 +6,7 @@ const base=process.env.DEMO_URL||'http://127.0.0.1:18893';
   const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
   try{
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(base+'/library/');await page.waitForFunction(()=>window.ArcadePreferences);await page.evaluate(()=>ArcadePreferences.ready);
+    await page.addInitScript(()=>navigator.getGamepads=()=>[]);await page.goto(base+'/library/');await page.waitForFunction(()=>window.ArcadePreferences);await page.evaluate(()=>ArcadePreferences.ready);
     assert.equal(await page.evaluate(()=>ArcadePreferences.get().fullscreen),'on');
     await page.getByRole('button',{name:'游戏厅设置',exact:true}).click();
     await page.getByLabel('默认滤镜',{exact:true}).selectOption('crt');await page.getByLabel('默认机台遮罩',{exact:true}).selectOption('neon');await page.getByLabel('默认效果强度',{exact:true}).selectOption('light');await page.getByLabel('金手指功能',{exact:true}).selectOption('disabled');await page.getByLabel('开始游戏时全屏',{exact:true}).selectOption('off');
@@ -24,7 +24,7 @@ const base=process.env.DEMO_URL||'http://127.0.0.1:18893';
       await put('EmulatorJS-states','states','manual-save',new Uint8Array([1,2,3]));await ArcadePreferences.progress('put','test-resume',{state:new Uint8Array([7,8,9])});localStorage.setItem('arcade-favorites','["keep"]');
       const owned=await caches.open('pixelarcade-cache-test');await owned.put('/owned',new Response('cache'));const other=await caches.open('another-app-cache');await other.put('/other',new Response('keep'));
     });}
-    await seed();assert.equal(await page.evaluate(()=>ArcadePreferences.cacheBytes()),3072);assert.equal(await page.evaluate(()=>ArcadePreferences.clearCache()),3072);
+    await page.evaluate(()=>ArcadePreferences.clearCache());await seed();assert.equal(await page.evaluate(()=>ArcadePreferences.cacheBytes()),3072);assert.equal(await page.evaluate(()=>ArcadePreferences.clearCache()),3072);
     assert.equal(await page.evaluate(()=>ArcadePreferences.cacheBytes()),0);
     assert.deepEqual(await page.evaluate(async()=>Array.from((await ArcadePreferences.progress('get','test-resume')).state)),[7,8,9]);
     assert.equal(await page.evaluate(()=>localStorage.getItem('arcade-favorites')),'["keep"]');
