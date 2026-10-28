@@ -15,7 +15,7 @@
   })();
   function update(values){for(const name in values)if(schema[name]?.includes(values[name]))settings[name]=values[name];try{if(!identityReady)throw Error();localStorage.setItem(key('preferences'),JSON.stringify(settings));persisted=true;}catch{persisted=false;}window.dispatchEvent(new CustomEvent('arcade-preferences-changed'));return persisted;}
   const libraryKey=name=>location.pathname.startsWith('/arcade/')?key(name):'arcade-'+name;
-  function libraryRecords(){if(!identityReady)throw Error('账号状态暂不可用');const result={};for(const name of ['favorites','recent']){const value=JSON.parse(localStorage.getItem(libraryKey(name))||'[]');result[name]=Array.isArray(value)?value.filter(v=>typeof v==='string'):[];}return result;}
+  function libraryRecords(){if(!identityReady)throw Error('账号状态暂不可用');if(window.ArcadeLibraryRecords)return window.ArcadeLibraryRecords.get();const result={};for(const name of ['favorites','recent']){const value=JSON.parse(localStorage.getItem(libraryKey(name))||'[]');result[name]=Array.isArray(value)?value.filter(v=>typeof v==='string'):[];}return result;}
   function restoreLibrary(value){if(!identityReady||!value||!['favorites','recent'].every(n=>Array.isArray(value[n])&&value[n].length<=10000&&value[n].every(v=>typeof v==='string'&&v.length<2048)))throw Error('备份格式不正确');const current=libraryRecords();for(const name of ['favorites','recent'])localStorage.setItem(libraryKey(name),JSON.stringify([...new Set([...current[name],...value[name]])]));}
   function gameKey(core,src){return key('game:'+core+':'+src);}
   function db(name,store){return new Promise((resolve,reject)=>{
