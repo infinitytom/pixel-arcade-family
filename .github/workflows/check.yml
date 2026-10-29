@@ -24,6 +24,7 @@ jobs:
           npx playwright install --with-deps chromium
           node scripts/check_gamepad.cjs
           node scripts/check_game_audio.cjs
+          BROWSER_CHANNEL=chromium node scripts/check_startup.cjs
           BROWSER_CHANNEL=chromium node scripts/check_resume_countdown.cjs
           BROWSER_CHANNEL=chromium node scripts/check_cabinet.cjs
           BROWSER_CHANNEL=chromium node scripts/check_presentation.cjs
@@ -49,6 +50,7 @@ jobs:
           curl --fail --silent http://127.0.0.1:18888/library/game-layouts.json | python -c 'import json,sys; data=json.load(sys.stdin); assert data["mame2003_plus"]["1942"] == 0.75; assert data["fbneo"]["darius"] == 4'
           curl --fail --silent http://127.0.0.1:18888/library/sounds.js > /dev/null
           curl --fail --silent http://127.0.0.1:18888/library/presentation.js > /dev/null
+          DEMO_URL=http://127.0.0.1:18888 BROWSER_CHANNEL=chromium node scripts/check_engine_start.cjs
           DEMO_URL=http://127.0.0.1:18888 BROWSER_CHANNEL=chromium node scripts/check_rom_archive.cjs
           DEMO_URL=http://127.0.0.1:18888 BROWSER_CHANNEL=chromium node scripts/check_sounds.cjs
           DEMO_URL=http://127.0.0.1:18888 BROWSER_CHANNEL=chromium node scripts/check_core_cache.cjs

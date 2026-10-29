@@ -1,13 +1,15 @@
 // Verify reusable binary downloads and cache/data boundaries with real IndexedDB.
 const {chromium}=require('playwright'),assert=require('node:assert/strict');
 (async()=>{const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});try{
- const page=await browser.newPage(),base=process.env.DEMO_URL||'http://127.0.0.1:18893';let gets=0,revision='v1';
+ const page=await browser.newPage(),base=process.env.DEMO_URL||'http://127.0.0.1:18893';let gets=0,heads=0,revision='v1';
  await page.addInitScript(()=>navigator.getGamepads=()=>[]);
  await page.route('**/library/catalog.json',r=>r.fulfill({json:{games:[{id:'dino',title:'测试游戏',category:'动作',filename:'dino.zip',rom:'/roms/dino.zip',core:'mame2003_plus'}],categories:{动作:1}}}));
- await page.route('**/data/cores/*-wasm.data',r=>{if(r.request().method()==='GET')gets++;return r.fulfill({status:200,headers:{etag:revision,'content-type':'application/octet-stream','content-length':'2048'},body:r.request().method()==='HEAD'?'':Buffer.alloc(2048,revision==='v1'?1:2)});});
+ await page.route('**/data/cores/*-wasm.data',r=>{if(r.request().method()==='GET')gets++;else heads++;return r.fulfill({status:200,headers:{etag:revision,'content-type':'application/octet-stream','content-length':'2048'},body:r.request().method()==='HEAD'?'':Buffer.alloc(2048,revision==='v1'?1:2)});});
  await page.goto(base+'/library/');await page.waitForFunction(()=>window.ArcadeCoreCache);
+ assert.equal(await page.evaluate(()=>ArcadeCoreCache.prepare('fbneo','1',{cacheOnly:true})),false);assert.equal(gets,0,'cold startup does not wait for a predownload');
  assert.equal((await page.evaluate(()=>ArcadeCoreCache.preload())).count,1);assert.equal(gets,1);
  await page.evaluate(()=>ArcadeCoreCache.preload());assert.equal(gets,1,'warm core must avoid a second GET');
+ const previousHeads=heads;assert.equal(await page.evaluate(()=>ArcadeCoreCache.prepare('mame2003_plus','1',{cacheOnly:true})),true);assert.equal(heads,previousHeads,'cached player startup never waits for network HEAD');
  assert.equal(await page.evaluate(()=>ArcadeCoreCache.prepare('mame2003_plus')),true);
  assert.deepEqual(await page.evaluate(async()=>{const data=await(await fetch(EJS_paths['mame2003_plus-legacy-wasm.data'])).arrayBuffer();return [data.byteLength,new Uint8Array(data)[0]];}),[2048,1],'player receives the cached bytes through its supported EJS_paths hook');
  revision='v2';await page.evaluate(()=>ArcadeCoreCache.preload());assert.equal(gets,2,'changed core validator invalidates old bytes');

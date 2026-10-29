@@ -1,0 +1,14 @@
+// Simulate stalled dependencies and downloads with the browser clock.
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+const source=fs.readFileSync(path.resolve(__dirname,'../site/library/startup.js'));
+const server=http.createServer((req,res)=>{res.setHeader('Content-Type',req.url.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8');res.end(req.url==='/startup.js'?source:req.url==='/loader.js'?'window.loaded=true;document.body.insertAdjacentHTML("beforeend","<button class=ejs_start_button>ready</button>");':'<main id="playerStage"><div id="playerLaunch"><div class="launch-card"><p id="launchStatus"></p></div></div></main><script src="/startup.js"></script>');});
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});try{
+ const page=await browser.newPage(),url='http://127.0.0.1:'+server.address().port+'/';await page.clock.install();await page.goto(url);
+ await page.evaluate(()=>{const loader=document.createElement('script');loader.src='/loader.js';window.job=ArcadeStartup.run(loader,[['测试依赖',()=>new Promise(r=>window.releaseDependency=r)]]);});
+ await page.clock.runFor(10001);assert.match(await page.locator('#launchStatus').textContent(),/响应较慢/);assert.equal(await page.locator('[data-startup-retry]').count(),1);
+ await page.clock.runFor(20001);assert.match(await page.locator('#launchStatus').textContent(),/超过 30 秒/);await page.evaluate(()=>releaseDependency());assert.equal(await page.evaluate(()=>!!window.loaded),false,'late dependency completion cannot launch after a timeout');
+ await page.goto(url);await page.evaluate(()=>{const loader=document.createElement('script');loader.src='/loader.js';window.job=ArcadeStartup.run(loader,[['缓存',()=>Promise.resolve()]]);});await page.waitForFunction(()=>window.loaded);
+ await page.evaluate(()=>{document.querySelector('#playerLaunch').hidden=true;window.EJS_emulator={started:false,failedToStart:false,textElem:document.createElement('p')};EJS_emulator.textElem.textContent='正在下载核心 1%';});await page.clock.runFor(250);await page.clock.runFor(22000);assert.equal(await page.locator('.startup-network-notice').count(),1);
+ await page.evaluate(()=>EJS_emulator.textElem.textContent='正在下载核心 2%');await page.clock.runFor(250);assert.equal(await page.locator('.startup-network-notice').count(),0);assert.match(await page.locator('#launchStatus').textContent(),/2%/);
+ console.log('PASS: bounded preparation, actionable slow-network retry, no late launch after timeout, visible download progress and stall recovery.');
+ }finally{await browser.close();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1;});

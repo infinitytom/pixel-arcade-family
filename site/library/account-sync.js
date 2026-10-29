@@ -128,13 +128,13 @@
     if(!enabled)return;
     try{
       const r=await fetch('/arcade/auth/session',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(5000)});if(!r.ok)throw Error('请重新登录后同步');const a=await r.json();if(typeof a.username!=='string'||!a.username)throw Error('账号信息不可用');if(account&&account!==a.username)throw Error('账号已切换，请刷新页面后继续同步');account=a.username;prefix='pixelarcade:'+encodeURIComponent(account)+':';operationClock=Math.max(Date.now(),...queued().map(v=>v.createdAt));for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(prefix+'sync-save-error:'))saveIssues.set(k.slice((prefix+'sync-save-error:').length),read(k,'部分本机存档尚未上传'));}
-      const payload=await request('metadata');
+      const payload=await request('metadata',{signal:AbortSignal.timeout(5000)});
       // Seed only missing server fields; existing tombstones and cloud values win.
       for(const id of read(prefix+'favorites',[]))enqueue('favorite',id,true,true);
       const recent=read(prefix+'recent',[]),existing=(payload.items||[]).filter(v=>v.kind==='recent').map(v=>v.value),oldest=existing.length?Math.min(...existing)-1:Date.now();recent.forEach((id,i)=>enqueue('recent',id,oldest-i,true));
       for(const [name,value] of Object.entries(read(prefix+'preferences',{})))enqueue('setting',name,value,true);
       for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(prefix+'game:'))enqueue('picture',k.slice(prefix.length),read(k,null),true);}
-      initialized=true;apply(payload);await flush(true);
+      initialized=true;apply(payload);
       // Do not delay game launch while migrating other games' snapshots.
       setTimeout(()=>flush(),500);
     }catch(e){phase='同步未完成';error=e.message;notify();}
