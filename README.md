@@ -4,7 +4,7 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
-v1.6.4：继续游戏时只在实际游戏画面上显示 3、2、1，取消截图、遮罩、标题和按钮，结束后自动继续。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，按 [更新指南](docs/update.md) 保留配置与数据。
+v1.6.5：移除旧倒计时画面准备流程，重新使用简单的 3、2、1 数字；暂停期间不重设滤镜，恢复游戏后再应用。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，按 [更新指南](docs/update.md) 保留配置与数据。
 
 [观看此前版本的更新演示（v1.1.2）](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
 

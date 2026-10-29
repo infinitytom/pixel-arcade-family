@@ -13,27 +13,8 @@
     proto.getRetroArchCfg=function(){return cfg.call(this)+'\nvideo_font_enable = false\nmenu_enable_widgets = false\nmenu_show_start_screen = false\ninput_menu_toggle_gamepad_combo = "0"\ninput_quit_gamepad_combo = "0"\ninput_menu_toggle = "nul"\ninput_exit_emulator = "nul"\n';};
   }
   function release(em){const input=em.gameManager?.simulateInput;if(typeof input==='function')for(let p=0;p<4;p++)for(let b=0;b<30;b++)input.call(em.gameManager,p,b,0);}
-  async function freeze(em,job){
-    await window.ArcadeExperience?.settled?.();
-    if(current!==job)return;
-    em.pause();
-    while(document.hidden){if(current!==job)return;await new Promise(resolve=>setTimeout(resolve,100));}
-    if(current!==job)return;
-    window.ArcadeExperience?.prepareResume?.();
-    em.play();
-    // Loading a state does not immediately update RetroArch's video cache.
-    // Present the restored state before pausing the actual canvas.
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    if(current!==job)return;
-    // Core startup can change the native dimensions. Finish shader setup while
-    // rendering still runs; applying it after pause can clear the screen.
-    window.ArcadeExperience?.prepareResume?.();
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    if(current!==job)return;
-    em.pause();
-  }
   function finish(play){
-    const job=current;if(!job)return;current=null;cancelAnimationFrame(job.frame);
+    const job=current;if(!job)return;current=null;clearInterval(job.timer);
     if(job.input)job.em.gameManager.simulateInput=job.input;
     overlay.hidden=true;window.dispatchEvent(new Event('arcade-input-reset'));
     if(play&&job.em===window.EJS_emulator&&!document.hidden)job.em.play();else job.em.pause();
@@ -42,11 +23,23 @@
   function start(em=window.EJS_emulator,{reveal}={}){
     if(current)return current.promise;
     if(!em?.started)return Promise.resolve(false);
-    let resolve;const promise=new Promise(r=>resolve=r),job={em,resolve,promise,remaining:3000,last:null,frame:0,input:em.gameManager?.simulateInput};current=job;
+    let resolve;const promise=new Promise(r=>resolve=r),job={em,resolve,promise,remaining:3,timer:0,input:em.gameManager?.simulateInput};current=job;
     release(em);if(job.input)em.gameManager.simulateInput=function(player,button,value){if(!value)return job.input.call(this,player,button,value);};
     (async()=>{
-      try{reveal?.();await freeze(em,job);if(current!==job)return;place();number.textContent='3';overlay.hidden=false;overlay.focus({preventScroll:true});window.dispatchEvent(new Event('arcade-resume-countdown-started'));
-        const tick=now=>{if(current!==job)return;if(document.hidden){job.last=null;job.remaining=3000;number.textContent='3';}else{if(job.last!==null)job.remaining-=Math.min(100,now-job.last);job.last=now;number.textContent=String(Math.max(1,Math.ceil(job.remaining/1000)));if(job.remaining<=0){finish(true);return;}}job.frame=requestAnimationFrame(tick);};job.frame=requestAnimationFrame(tick);
+      try{
+        await window.ArcadeExperience?.settled?.();
+        if(current!==job)return;
+        reveal?.();
+        em.play();
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        if(current!==job)return;
+        em.pause();place();number.textContent='3';overlay.hidden=false;
+        overlay.focus({preventScroll:true});window.dispatchEvent(new Event('arcade-resume-countdown-started'));
+        job.timer=setInterval(()=>{
+          if(document.hidden)return;
+          if(--job.remaining===0){finish(true);return;}
+          number.textContent=String(job.remaining);
+        },1000);
       }catch{finish(false);}
     })();return promise;
   }
@@ -54,7 +47,7 @@
     if(!current)return;if(event.type==='keydown'&&event.key==='Tab'){event.preventDefault();event.stopImmediatePropagation();overlay.focus({preventScroll:true});return;}if(event.type==='keydown'&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(false);return;}
     event.preventDefault();event.stopImmediatePropagation();
   },{capture:true,passive:false});
-  document.addEventListener('visibilitychange',()=>{if(current){current.last=null;current.remaining=3000;current.em.pause();}});
+  document.addEventListener('visibilitychange',()=>{if(current&&document.hidden){current.remaining=3;number.textContent='3';current.em.pause();}});
   window.addEventListener('pagehide',()=>finish(false));
   window.ArcadeResumeCountdown={prepare,start,cancel:()=>finish(false),get active(){return !!current;}};
 })();

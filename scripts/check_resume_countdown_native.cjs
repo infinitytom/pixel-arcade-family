@@ -1,8 +1,9 @@
 // Optional integration check: installed engine and the local dino ROM are required.
 const {chromium}=require('playwright'),assert=require('node:assert/strict');
-(async()=>{const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});try{
+(async()=>{const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:process.env.HEADED!=='1'});try{
   const page=await browser.newPage({viewport:{width:1366,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{window.pausedShaderCalls=[];const watcher=setInterval(()=>{const em=window.EJS_emulator;if(!em?.enableShader)return;clearInterval(watcher);const enable=em.enableShader;em.enableShader=function(...args){if(this.started&&this.paused)pausedShaderCalls.push(args[0]);return enable.apply(this,args);};},10);});
   await page.goto(process.env.GAME_URL||(process.env.DEMO_URL||'http://127.0.0.1:18893')+'/play.html?core=mame2003_plus&src=/roms/fbneo/动作街机/dino.zip');
   await page.locator('#playerStart:not([disabled])').click();await page.waitForFunction(()=>EJS_emulator.started);
   await page.waitForTimeout(7000);
@@ -11,6 +12,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
   async function checkFrame(label){
     await page.locator('#resumeCountdown').waitFor({state:'visible'});
     assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
+    assert.deepEqual(await page.evaluate(()=>pausedShaderCalls),[],'no shader change may clear the paused game canvas');
     const frame=await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum());await page.waitForTimeout(250);
     assert.equal(await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum()),frame,'core stays paused');
     await page.waitForTimeout(800); // Include the first 700 ms picture watcher tick.
@@ -39,6 +41,6 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
   }
   assert.equal(await page.evaluate(()=>ArcadeSession.save({manual:true})),true);
   await page.reload();await page.locator('#playerContinue:not([disabled])').click();await checkFrame('cold-restore');
-  assert.deepEqual(errors,[]);
+  assert.deepEqual(await page.evaluate(()=>pausedShaderCalls),[]);assert.deepEqual(errors,[]);
   console.log('PASS: '+new URL(page.url()).searchParams.get('core')+' native new-game boot without a key, visible actual paused canvas without any screenshot or shade with all eight filters and cold state restore, automatic countdown completion without focus or input.');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
