@@ -1,0 +1,26 @@
+// Real WebGL: erase the native drawing buffer during pause; no screenshot layer.
+const {chromium}=require('playwright'),http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const library=path.join(__dirname,'../site/library');
+const server=http.createServer((req,res)=>{const name=req.url.slice(1);if(['paused-display.js','resume-countdown.js','experience.css'].includes(name)){res.setHeader('Content-Type',name.endsWith('.css')?'text/css':'application/javascript');res.end(fs.readFileSync(path.join(library,name)));}else{res.setHeader('Content-Type','text/html');res.end('<link rel="stylesheet" href="/experience.css"><main id="playerStage" style="width:640px;height:480px"><div id="game"><canvas width="640" height="480"></canvas></div></main><script src="/paused-display.js"></script><script src="/resume-countdown.js"></script>');}});
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:process.env.HEADED!=='1'});try{
+ for(const [version,blocked,deleteBound] of [[1,false,false],[2,false,false],[1,true,false],[1,false,true]]){
+  const page=await browser.newPage();await page.goto('http://127.0.0.1:'+server.address().port+'/');
+  await page.evaluate(({version,blocked,deleteBound})=>{
+   const canvas=document.querySelector('canvas'),gl=canvas.getContext(version===2?'webgl2':'webgl',{preserveDrawingBuffer:false});if(!gl)throw Error('WebGL unavailable');window.gl=gl;window.nativeFrames=0;const actualRead=gl.readPixels;if(blocked)gl.readPixels=(...args)=>args.at(-1).fill(0);
+   const compile=(type,text)=>{const shader=gl.createShader(type);gl.shaderSource(shader,text);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(shader));return shader;};
+   const p=gl.createProgram();gl.attachShader(p,compile(gl.VERTEX_SHADER,version===2?'#version 300 es\nin vec2 p;void main(){gl_Position=vec4(p,0.,1.);}':'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}'));gl.attachShader(p,compile(gl.FRAGMENT_SHADER,version===2?'#version 300 es\nprecision mediump float;out vec4 color;void main(){color=vec4(.15,.6,.25,1.);}':'precision mediump float;void main(){gl_FragColor=vec4(.15,.6,.25,1.);}'));gl.bindAttribLocation(p,0,'p');gl.linkProgram(p);
+   window.expectedProgram=deleteBound?p:null;gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+   window.EJS_emulator={started:true,paused:false,canvas,gameManager:{simulateInput(){}},pause(){this.paused=true;if(deleteBound)gl.deleteProgram(gl.getParameter(gl.CURRENT_PROGRAM));gl.disable(gl.SCISSOR_TEST);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);gl.enable(gl.SCISSOR_TEST);},play(){this.paused=false;}};
+   const draw=()=>{requestAnimationFrame(draw);if(EJS_emulator.paused)return;nativeFrames++;gl.disable(gl.SCISSOR_TEST);gl.viewport(0,0,640,480);gl.useProgram(p);gl.drawArrays(gl.TRIANGLES,0,3);if(!deleteBound)gl.useProgram(null);gl.viewport(4,5,600,440);gl.enable(gl.SCISSOR_TEST);gl.activeTexture(gl.TEXTURE3);};draw();
+   window.pausedPixels=[0,0,0,0];window.pausedDraws=0;const originalDraw=gl.drawArrays;gl.drawArrays=function(...args){originalDraw.apply(this,args);if(EJS_emulator.paused){const p=new Uint8Array(4);actualRead.call(gl,200,200,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);pausedPixels=[...p];pausedDraws++;}};
+   window.job=ArcadeResumeCountdown.start();
+  },{version,blocked,deleteBound});
+  await page.locator('#resumeCountdown').waitFor({state:'visible'});const frames=await page.evaluate(()=>nativeFrames);await page.waitForTimeout(900);
+  assert.equal(await page.evaluate(()=>nativeFrames),frames,'native CPU execution stays paused');
+  const pixel=await page.evaluate(()=>pausedPixels);assert.ok(pixel[1]>100,'same native canvas redraws its last frame after the buffer was erased: '+pixel);assert.ok(await page.evaluate(()=>pausedDraws)>5,'presentation continues independently of the paused CPU loop');
+  assert.deepEqual(await page.evaluate(()=>({viewport:[...gl.getParameter(gl.VIEWPORT)],scissor:gl.isEnabled(gl.SCISSOR_TEST),unit:gl.getParameter(gl.ACTIVE_TEXTURE)-gl.TEXTURE0,program:gl.getParameter(gl.CURRENT_PROGRAM)===expectedProgram})),{viewport:[4,5,600,440],scissor:true,unit:3,program:true},'retained rendering restores native GL state');
+  assert.equal(await page.locator('#game canvas').count(),1);assert.equal(await page.locator('#game img,#resumeCountdown img,#resumeCountdown canvas').count(),0);
+  await page.waitForFunction(()=>!ArcadeResumeCountdown.active&&!EJS_emulator.paused);await page.waitForTimeout(100);assert.ok(await page.evaluate(()=>nativeFrames)>frames);assert.equal(await page.evaluate(()=>gl.getError()),0);await page.close();
+ }
+ console.log('PASS: WebGL 1/2 retain the original canvas despite buffer erasure and blocked pixel readback; native execution pauses, no extra image/canvas, GL state restored and automatic resume.');
+}finally{await browser.close();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1;});

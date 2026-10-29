@@ -27,6 +27,7 @@ jobs:
           BROWSER_CHANNEL=chromium node scripts/check_startup.cjs
           BROWSER_CHANNEL=chromium node scripts/check_resume_countdown.cjs
           BROWSER_CHANNEL=chromium node scripts/check_paused_picture.cjs
+          BROWSER_CHANNEL=chromium node scripts/check_paused_display.cjs
           BROWSER_CHANNEL=chromium node scripts/check_cabinet.cjs
           BROWSER_CHANNEL=chromium node scripts/check_presentation.cjs
           python scripts/sync_test_server.py &

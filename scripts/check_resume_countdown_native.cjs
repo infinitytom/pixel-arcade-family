@@ -3,6 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
 (async()=>{const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:process.env.HEADED!=='1'});try{
   const page=await browser.newPage({viewport:{width:1366,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{window.retainedFrames=[];const watcher=setInterval(()=>{const display=window.ArcadePausedDisplay;if(!display)return;clearInterval(watcher);const capture=display.capture;display.capture=async(...args)=>{const result=await capture.apply(display,args);retainedFrames.push(result);return result;};},10);});
   await page.addInitScript(()=>{window.pausedShaderCalls=[];const watcher=setInterval(()=>{const em=window.EJS_emulator;if(!em?.enableShader)return;clearInterval(watcher);const enable=em.enableShader;em.enableShader=function(...args){if(this.started&&this.paused)pausedShaderCalls.push(args[0]);return enable.apply(this,args);};},10);});
   await page.goto(process.env.GAME_URL||(process.env.DEMO_URL||'http://127.0.0.1:18893')+'/play.html?core=mame2003_plus&src=/roms/fbneo/动作街机/dino.zip');
   await page.locator('#playerStart:not([disabled])').click();await page.waitForFunction(()=>EJS_emulator.started);
@@ -11,7 +12,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
   if(new URL(page.url()).searchParams.get('core')==='mame2003_plus')assert.match(await page.evaluate(()=>EJS_emulator.getCoreSettings()),/skip_disclaimer = "enabled"/);
   async function checkFrame(label){
     await page.locator('#resumeCountdown').waitFor({state:'visible'});
-    assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
+    assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);assert.equal(await page.evaluate(()=>retainedFrames.at(-1)),true,'the actual core frame is retained in its native canvas');
     assert.deepEqual(await page.evaluate(()=>pausedShaderCalls),[],'no shader change may clear the paused game canvas');
     const frame=await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum());await page.waitForTimeout(250);
     assert.equal(await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum()),frame,'core stays paused');
@@ -27,12 +28,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
     assert.ok(pixels.width>100&&pixels.lit>.1,'actual displayed game is visible: '+label+' '+JSON.stringify(pixels));
     assert.equal(await page.locator('#resumeCountdown').evaluate(n=>getComputedStyle(n).backgroundColor),'rgba(0, 0, 0, 0)');assert.equal(await page.locator('#resumeCountdown > :not(strong)').count(),0);
     await page.screenshot({path:'test-results/countdown-'+label+'.png'});
-    // Some installed app windows report false without becoming hidden.
-    await page.evaluate(()=>Object.defineProperty(document,'hasFocus',{configurable:true,value:()=>false}));
     await page.waitForFunction(()=>!ArcadeResumeCountdown.active&&!EJS_emulator.paused,null,{timeout:6000});
     const resumed=await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum());await page.waitForTimeout(250);
     assert.ok(await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum())>resumed,'3,2,1 resumes native execution without input');
-    await page.evaluate(()=>delete document.hasFocus);
   }
   for(const filter of ['original','crt','soft','phosphor','phosphor-glow','phosphor-line','phosphor-line-glow','phosphor-line-reflex']){
     await page.evaluate(filter=>ArcadePreferences.update({filter}),filter);await page.waitForTimeout(500);assert.equal(await page.locator('#game').getAttribute('data-filter'),filter);

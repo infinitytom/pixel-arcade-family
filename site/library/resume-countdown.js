@@ -14,7 +14,7 @@
   }
   function release(em){const input=em.gameManager?.simulateInput;if(typeof input==='function')for(let p=0;p<4;p++)for(let b=0;b<30;b++)input.call(em.gameManager,p,b,0);}
   function finish(play){
-    const job=current;if(!job)return;current=null;clearInterval(job.timer);
+    const job=current;if(!job)return;current=null;clearInterval(job.timer);window.ArcadePausedDisplay?.release();
     if(job.input)job.em.gameManager.simulateInput=job.input;
     overlay.hidden=true;window.dispatchEvent(new Event('arcade-input-reset'));
     if(play&&job.em===window.EJS_emulator&&!document.hidden)job.em.play();else job.em.pause();
@@ -31,9 +31,10 @@
         if(current!==job)return;
         reveal?.();
         em.play();
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        if(window.ArcadePausedDisplay)await window.ArcadePausedDisplay.capture(em);
+        else await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         if(current!==job)return;
-        em.pause();place();number.textContent='3';overlay.hidden=false;
+        em.pause();window.ArcadePausedDisplay?.present();place();number.textContent='3';overlay.hidden=false;
         overlay.focus({preventScroll:true});window.dispatchEvent(new Event('arcade-resume-countdown-started'));
         job.timer=setInterval(()=>{
           if(document.hidden)return;
