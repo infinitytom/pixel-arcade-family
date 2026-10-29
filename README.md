@@ -4,7 +4,7 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
-v1.6.2：修正暂停倒计时的半透明背景，直接保留暂停的实际游戏画面。修复所有游戏停留在准备中的引擎初始化缺陷，取消阻塞启动的核心预下载，补充下载进度与超时重试。自动补载 HACK 游戏所需父资源；继续游戏时冻结画面并显示半透明 3、2、1 倒计时；跨页面记住控制设备，提供无地址栏的全屏启动入口。沿用 7z 兼容、做旧机台和账号同步。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，按 [更新指南](docs/update.md) 保留配置与数据。
+v1.6.3：修正继续游戏倒计时黑屏和等待按键的问题。使用核心原生截图保留恢复后的实际画面，半透明 3、2、1 结束后自动继续；MAME 新游戏跳过阻塞启动的提示。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，按 [更新指南](docs/update.md) 保留配置与数据。
 
 [观看此前版本的更新演示（v1.1.2）](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
 

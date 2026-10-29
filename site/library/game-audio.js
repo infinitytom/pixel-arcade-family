@@ -35,7 +35,7 @@
     schedule();
   }
   function prepare(mode){
-    if(mode!=='continue'||new URLSearchParams(location.search).get('core')!=='mame2003_plus')return;
+    if(new URLSearchParams(location.search).get('core')!=='mame2003_plus')return;
     const em=window.EJS_emulator;if(!em||em.arcadeResumeBoot||typeof em.getCoreSettings!=='function')return;
     em.arcadeResumeBoot=true;const getSettings=em.getCoreSettings;
     // MAME's startup notices are frontend UI state, not part of the game state.

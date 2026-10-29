@@ -167,6 +167,7 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 
 #game .ejs_menu_bar,#game .ejs_message{display:none!important}
 #resumeCountdown{position:absolute;inset:0;z-index:12;isolation:isolate;background:transparent}#resumeCountdown[hidden]{display:none}
+.resume-countdown-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;image-rendering:pixelated;border-radius:var(--screen-radius,0);z-index:3;pointer-events:none}.resume-countdown-frame[hidden]{display:none}
 .resume-countdown-shade{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.22)}
 .resume-countdown-card{text-align:center;color:#f1f5df;text-shadow:0 2px 5px #000b;font:16px/1.5 system-ui}
 .resume-countdown-card p{margin:8px 0}.resume-countdown-card strong{display:block;font:800 clamp(70px,13vh,130px)/1.15 system-ui;color:#d6eb9e}
