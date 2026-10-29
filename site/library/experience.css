@@ -166,11 +166,7 @@ body:has(#game) #playerLaunch .launch-card{padding:30px;border:1px solid #d0ef88
 .cabinet-marquee small{font-size:clamp(5px,calc(var(--marquee)*.15),12px)}
 
 #game .ejs_menu_bar,#game .ejs_message{display:none!important}
-#resumeCountdown{position:absolute;inset:0;z-index:12;isolation:isolate;background:transparent}#resumeCountdown[hidden]{display:none}
-.resume-countdown-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;image-rendering:pixelated;border-radius:var(--screen-radius,0);z-index:3;pointer-events:none}.resume-countdown-frame[hidden]{display:none}
-.resume-countdown-shade{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.22)}
-.resume-countdown-card{text-align:center;color:#f1f5df;text-shadow:0 2px 5px #000b;font:16px/1.5 system-ui}
-.resume-countdown-card p{margin:8px 0}.resume-countdown-card strong{display:block;font:800 clamp(70px,13vh,130px)/1.15 system-ui;color:#d6eb9e}
-.resume-countdown-card button{padding:8px 16px;margin-top:15px;border:1px solid #d0e3a266;border-radius:10px;background:#14200bd9;color:#e8f2d7;font:inherit;cursor:pointer}
+#resumeCountdown{position:absolute;z-index:12;display:grid;place-items:center;background:none!important;pointer-events:none;outline:none;border:0;box-shadow:none;backdrop-filter:none}#resumeCountdown[hidden]{display:none}
+#resumeCountdown strong{color:#fff;font:800 clamp(70px,13vh,130px)/1 system-ui;text-shadow:0 2px 8px #000,0 0 2px #000}
 
 .startup-network-notice{position:absolute;z-index:20;left:50%;bottom:24px;transform:translateX(-50%);width:min(540px,calc(100% - 48px));box-sizing:border-box;padding:16px 20px;border:1px solid #b9cb8266;border-radius:14px;background:#15200ff2;color:#e5eed1;font:14px/1.7 system-ui;box-shadow:0 8px 32px #0008}.startup-network-notice p{margin:0 0 12px}.startup-network-notice button{border:1px solid #c5da8e88;border-radius:8px;background:#304325;color:#eff9df;padding:9px 18px;font:inherit;cursor:pointer}

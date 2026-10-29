@@ -11,15 +11,19 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
   async function checkFrame(label){
     await page.locator('#resumeCountdown').waitFor({state:'visible'});
     assert.equal(await page.evaluate(()=>EJS_emulator.paused),true);
-    const pixels=await page.locator('.resume-countdown-frame').evaluate(img=>{
-      const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
-      c.getContext('2d').drawImage(img,0,0);const data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
-      let lit=0;for(let i=0;i<data.length;i+=4)if(data[i]+data[i+1]+data[i+2]>75)lit++;
-      return {width:c.width,lit:lit/(c.width*c.height),visible:!img.hidden};
-    });
-    assert.ok(pixels.visible&&pixels.width>100&&pixels.lit>.1,'actual native frame is visible, not an empty/black WebGL copy: '+JSON.stringify(pixels));
     const frame=await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum());await page.waitForTimeout(250);
     assert.equal(await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum()),frame,'core stays paused');
+    await page.waitForTimeout(800); // Include the first 700 ms picture watcher tick.
+    // Read the browser compositor, not WebGL's possibly discarded buffer.
+    const screenshot=await page.locator('#game').screenshot();
+    const pixels=await page.evaluate(async encoded=>{const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));const image=await createImageBitmap(new Blob([bytes],{type:'image/png'}));
+      const c=document.createElement('canvas');c.width=image.width;c.height=image.height;
+      c.getContext('2d').drawImage(image,0,0);image.close();const data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+      let lit=0;for(let i=0;i<data.length;i+=4)if(data[i]+data[i+1]+data[i+2]>75)lit++;
+      return {width:c.width,lit:lit/(c.width*c.height)};
+    },screenshot.toString('base64'));
+    assert.ok(pixels.width>100&&pixels.lit>.1,'actual displayed game is visible: '+label+' '+JSON.stringify(pixels));
+    assert.equal(await page.locator('#resumeCountdown').evaluate(n=>getComputedStyle(n).backgroundColor),'rgba(0, 0, 0, 0)');assert.equal(await page.locator('#resumeCountdown > :not(strong)').count(),0);
     await page.screenshot({path:'test-results/countdown-'+label+'.png'});
     // Some installed app windows report false without becoming hidden.
     await page.evaluate(()=>Object.defineProperty(document,'hasFocus',{configurable:true,value:()=>false}));
@@ -28,13 +32,13 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
     assert.ok(await page.evaluate(()=>EJS_emulator.gameManager.getFrameNum())>resumed,'3,2,1 resumes native execution without input');
     await page.evaluate(()=>delete document.hasFocus);
   }
-  for(const filter of ['original','crt','soft']){
-    await page.evaluate(filter=>ArcadePreferences.update({filter}),filter);await page.waitForTimeout(500);
+  for(const filter of ['original','crt','soft','phosphor','phosphor-glow','phosphor-line','phosphor-line-glow','phosphor-line-reflex']){
+    await page.evaluate(filter=>ArcadePreferences.update({filter}),filter);await page.waitForTimeout(500);assert.equal(await page.locator('#game').getAttribute('data-filter'),filter);
     await page.keyboard.press('Escape');await page.getByRole('button',{name:'继续游戏',exact:true}).click();
     await checkFrame(filter);
   }
   assert.equal(await page.evaluate(()=>ArcadeSession.save({manual:true})),true);
   await page.reload();await page.locator('#playerContinue:not([disabled])').click();await checkFrame('cold-restore');
   assert.deepEqual(errors,[]);
-  console.log('PASS: '+new URL(page.url()).searchParams.get('core')+' native new-game boot without a key, visible paused core frames with three filters and cold state restore, automatic countdown completion without focus or input.');
+  console.log('PASS: '+new URL(page.url()).searchParams.get('core')+' native new-game boot without a key, visible actual paused canvas without any screenshot or shade with all eight filters and cold state restore, automatic countdown completion without focus or input.');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

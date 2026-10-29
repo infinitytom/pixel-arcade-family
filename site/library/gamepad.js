@@ -72,7 +72,7 @@
     return [...scope().querySelectorAll('button, a[href], input, select')].filter(visible);
   }
   function firstGame() { return playing ? $('#game canvas') || $('#game') : $('#grid .cover') || $('#search') || document.querySelector('a[href]') || guideButton; }
-  function focusGame(){if(!playing)return;if(window.ArcadeResumeCountdown?.active&&!$('#resumeCountdown')?.hidden){$('#resumeCountdown button')?.focus({preventScroll:true});return;}if(!$('#playerLaunch').hidden){focus(new URLSearchParams(location.search).get('resume')!=='new'&&!$('#playerContinue')?.hidden&&!$('#playerContinue')?.disabled?$('#playerContinue'):!$('#playerStart').disabled?$('#playerStart'):$('#playerLaunchBack'));return;}document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));const target=firstGame();target.tabIndex=-1;target.focus({preventScroll:true});}
+  function focusGame(){if(!playing)return;if(window.ArcadeResumeCountdown?.active&&!$('#resumeCountdown')?.hidden){$('#resumeCountdown')?.focus({preventScroll:true});return;}if(!$('#playerLaunch').hidden){focus(new URLSearchParams(location.search).get('resume')!=='new'&&!$('#playerContinue')?.hidden&&!$('#playerContinue')?.disabled?$('#playerContinue'):!$('#playerStart').disabled?$('#playerStart'):$('#playerLaunchBack'));return;}document.querySelectorAll('.pad-focus').forEach(n=>n.classList.remove('pad-focus'));const target=firstGame();target.tabIndex=-1;target.focus({preventScroll:true});}
   function move(dir) {
     const all = controls(), active = document.activeElement;
     if (!all.includes(active)) { focus(scope() === document ? firstGame() : all[0]); return; }

@@ -20,7 +20,7 @@
   const validRatio=n=>Number.isFinite(n)&&n>=.2&&n<=5;
   let preloadRatio=validRatio(Number(params.get('aspect')))?Number(params.get('aspect')):4/3,ratioKey='',lastMeasured=0;
   try {const saved = JSON.parse(localStorage.getItem(key));for(const k in defaults)if(choices[k].some(([v])=>v===saved?.[k]))picture[k]=saved[k];} catch {}
-  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet16',assets);document.head.append(style);
+  const style = document.createElement('link');style.rel='stylesheet';style.href=new URL('experience.css?v=cabinet17',assets);document.head.append(style);
   const stage = document.querySelector('#playerStage');
   const decor = document.createElement('div');decor.id='arcadeDecoration';decor.setAttribute('aria-hidden','true');
   decor.innerHTML='<div class="arcade-cabinet"><div class="cabinet-marquee"><i></i><div><small>像素放映厅</small><strong>VIDEO ARCADE</strong></div><i></i></div><div class="cabinet-bezel"><span class="bezel-caption">HIGH SCORE · ONE MORE ROUND</span><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i></div><div class="cabinet-deck"><div class="deck-player"><span>1 PLAYER</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div><div class="deck-player"><span>2 PLAYERS</span><i class="joystick"></i><div class="arcade-buttons"><b></b><b></b><b></b><b></b><b></b><b></b></div></div></div><div class="cabinet-coins"><span>请投入代币<br><small>INSERT COIN</small></span><i></i><i></i><span>再来一局<br><small>PLAY AT HOME</small></span></div></div><img class="arcade-preview" alt="" hidden><div class="arcade-glass"></div><div class="arcade-mask"></div>';
@@ -110,7 +110,7 @@
   function save() {window.ArcadeAccountSync?.picture(key.slice(window.ArcadePreferences.key('').length),picture);try{localStorage.setItem(key,JSON.stringify(picture));storageOK=true;}catch{storageOK=false;}apply();}
   window.addEventListener('arcade-account-data',()=>{try{const saved=JSON.parse(localStorage.getItem(key)||'null'),global=ArcadePreferences.get();for(const name of ['filter','frame','mask','strength'])picture[name]=choices[name].some(([v])=>v===saved?.[name])?saved[name]:global[name];apply();}catch{}});
   new ResizeObserver(geometry).observe(stage);
-  setInterval(()=>{const em=window.EJS_emulator;if(em?.started){if(appliedEmulator!==em)apply();else geometry();}},700);
+  setInterval(()=>{if(window.ArcadeResumeCountdown?.active)return;const em=window.EJS_emulator;if(em?.started){if(appliedEmulator!==em)apply();else geometry();}},700);
   apply();
   window.addEventListener('arcade-preferences-changed',()=>{try{if(localStorage.getItem(key))return;}catch{}const global=window.ArcadePreferences?.get();if(!global)return;for(const name of ['filter','frame','mask','strength'])picture[name]=global[name];apply();if(container?.open&&container.querySelector('[aria-label="画面滤镜"]'))picturePage();});
   function clearPreview() {
@@ -240,6 +240,8 @@
   function cheatPage() {clearPreview();page('金手指','按当前游戏和模拟核心显示可用项目。');cheats(container);button(container,'继续游戏（B / Esc）',()=>container.close());button(container,'← 画面与边框',picturePage);button(container,'← 返回游戏菜单',back);}
   window.ArcadeExperience={
     layout:geometry,
+    settled:()=>capturePromise,
+    prepareResume:()=>apply(),
     async thumbnail(){
       const em=window.EJS_emulator;if(!em?.canvas?.width)return null;let bitmap=null;
       try{await capturePromise;let source=em.canvas;if(em.paused&&snapshotBytes?.byteLength){bitmap=await createImageBitmap(new Blob([snapshotBytes],{type:'image/png'}));source=bitmap;}
