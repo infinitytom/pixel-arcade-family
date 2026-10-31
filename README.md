@@ -57,7 +57,7 @@ roms/
 - 支持四个街机核心。以核心名命名的上级文件夹优先指定核心，其余使用 `.env` 中的 `DEFAULT_CORE`。
 - `neogeo.zip` 等 BIOS 不作为游戏展示。可把 `neogeo.zip` 放在 ROM 同目录或挂载根目录；其他系统的 BIOS/父 ROM 请按相应核心要求放置。也可提供自己的 `collection-bios.zip`，会优先使用。
 
-作者提供的 1464 款 FBNeo 整理资源链接在[资源说明](docs/resources.md)。仓库、镜像和发布包均不附带 ROM、BIOS 或整合包封面视频；资源获取与软件部署相互独立。
+作者提供的 1464 款 FBNeo 整理资源链接在[资源说明](docs/resources.md)。仓库、镜像和发布包均不附带 ROM、BIOS 或整合包封面视频；资源获取与软件部署相互独立。压缩包解压码 www.fzskkj.cn
 
 ## 家庭版有什么
 
