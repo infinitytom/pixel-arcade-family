@@ -58,7 +58,8 @@ const server=http.createServer((req,res)=>{
   assert.equal(new URL(await cards.nth(0).locator('.recent-play').getAttribute('href'),base).searchParams.get('resume'),'new');
   await page.evaluate(()=>ArcadePreferences.update({resume:'offer'}));await page.waitForFunction(()=>document.querySelector('#homeRecent .recent-play').textContent==='继续游玩');
   await page.setViewportSize({width:1600,height:1000});await page.bringToFront();await page.locator('#padActivate').click();
-  const press=async b=>{await page.evaluate(i=>{pad.buttons[i]={pressed:true,value:1};},b);await page.waitForTimeout(90);await page.evaluate(()=>pad.buttons.forEach(b=>{b.pressed=false;b.value=0;}));await page.waitForTimeout(90);};
+  const down=async buttons=>{await page.evaluate(bs=>pad.buttons.forEach((b,i)=>{b.pressed=bs.includes(i);b.value=+b.pressed;}),buttons);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));await page.waitForTimeout(40);};
+  const press=async b=>{await down([b]);await down([]);};await down([]);
   await page.locator('#sortControl').focus();await press(7);assert.equal(await cards.nth(0).locator('.recent-play').evaluate(n=>n===document.activeElement),true,'RT reaches home cards');
   await press(7);assert.equal(await page.locator('#grid .cover').first().evaluate(n=>n===document.activeElement),true,'RT reaches game grid');
   await cards.nth(0).locator('.recent-play').focus();await press(15);assert.equal(await cards.nth(0).locator('.recent-details').evaluate(n=>n===document.activeElement),true,'right reaches details');
