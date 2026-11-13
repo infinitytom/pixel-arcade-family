@@ -339,8 +339,8 @@ class SyncStore:
 
     def saves(self, username, game):
         with self.connect() as db:
-            return {'points': [dict(id=r['id'], updatedAt=r['stamp'], source=r['source']) for r in db.execute(
-                'SELECT id,stamp,source FROM saves WHERE username=? AND game=? ORDER BY stamp DESC,id DESC', (username, game))]}
+            return {'points': [dict(json.loads(r['metadata']), id=r['id'], updatedAt=r['stamp'], source=r['source']) for r in db.execute(
+                'SELECT id,stamp,source,metadata FROM saves WHERE username=? AND game=? ORDER BY stamp DESC,id DESC', (username, game))]}
 
     def point(self, username, sid):
         with self.connect() as db:

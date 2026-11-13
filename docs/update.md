@@ -1,6 +1,6 @@
 # 更新游戏厅
 
-此页对应 v1.6.6。首次安装请先看 [飞牛部署教程](fnos.md)。更新程序不用重新导入 ROM。
+此页对应 v1.7.0。首次安装请先看 [飞牛部署教程](fnos.md)。更新程序不用重新导入 ROM。
 
 ## 更新前保留什么
 
@@ -24,7 +24,7 @@ docker compose logs --tail=80
 
 ## 下载 ZIP 的飞牛用户
 
-1. 下载要更新的源码 ZIP，解压到临时目录。v1.2.0 使用 Release 中的 `pixel-arcade-family-v1.2.0.zip`；也可在仓库首页选择 Code → Download ZIP 获取 main。
+1. 下载要更新的源码 ZIP，解压到临时目录。v1.7.0 使用 Release 中的 `pixel-arcade-family-v1.7.0.zip`；也可在仓库首页选择 Code → Download ZIP 获取 main。
 2. 备份旧项目。将新版程序文件合并到原项目目录，包含 `Dockerfile`、`compose.yaml`、`site/`、`scripts/`、`server.py`、`catalog.py` 和 `engine-lock.json`；保留自己的 `.env`、`roms/`、`cheats/`。
 3. 在项目根目录建立 `cheats` 文件夹。保留原 Compose 项目名与端口设置。
 4. 飞牛 Docker → Compose → 原项目，重新构建并启动。也可在项目目录执行 `docker compose up -d --build`。

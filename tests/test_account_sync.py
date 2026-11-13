@@ -30,6 +30,18 @@ class AccountSyncTests(unittest.TestCase):
             state=base64.b64encode(bytes([stamp % 256]) * 200).decode(), updatedAt=stamp,
             source=source, sessionId=session, reason=reason, thumbnail=None, core='fbneo', src='/roms/dino.zip'))
 
+    def test_resume_manifest_has_preview_metadata_without_binary_state(self):
+        payload = self.point(1700000000000)
+        payload['point']['thumbnail'] = 'data:image/jpeg;base64,aGVsbG8='
+        self.store.save('alice', payload)
+        points = self.store.saves('alice', payload['game'])['points']
+        self.assertEqual(len(points), 1)
+        self.assertEqual(points[0]['thumbnail'], payload['point']['thumbnail'])
+        self.assertEqual(points[0]['core'], 'fbneo')
+        self.assertEqual(points[0]['sessionId'], 'test')
+        self.assertNotIn('state', points[0])
+        self.assertEqual(self.store.saves('bob', payload['game'])['points'], [])
+
     def test_seed_tombstone_retry_and_account_isolation(self):
         add = self.op()
         self.store.apply('alice', [add])

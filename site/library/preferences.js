@@ -42,6 +42,26 @@
     if(merged&&merged!==local){try{await localProgress('put',id,merged);}catch{}}
     return merged??local;
   }
+  // Inspect one record at a time and return only display metadata. The home page
+  // must never download complete remote states merely to show a continue card.
+  async function resumeSummary(src){
+    await ready;if(!identityReady)throw Error('账号状态暂不可用');
+    const canonical=id=>window.ArcadeAccountSync?.canonical(id)||id;
+    const suffix=canonical(progressIDs('resume:fbneo:'+src)[0]).slice('resume:fbneo:'.length);
+    let latest=null;
+    const database=await db('PixelArcade-progress-v1','snapshots');
+    try{await new Promise((resolve,reject)=>{
+      const tx=database.transaction('snapshots'),store=tx.objectStore('snapshots'),keys=store.openKeyCursor();
+      keys.onsuccess=()=>{const cursor=keys.result;if(!cursor)return;const id=String(cursor.key);if(!id.startsWith(key('resume:'))){cursor.continue();return;}
+        const match=/^resume:([^:]+):(.*)$/.exec(canonical(id.slice(scope.length)));
+        if(!match||match[2]!==suffix){cursor.continue();return;}
+        const request=store.get(cursor.key);request.onsuccess=()=>{const point=resumePoints(request.result)[0];if(point&&(!latest||point.updatedAt>latest.updatedAt)){const {state,...summary}=point;latest={...summary,core:match[1],src};}cursor.continue();};
+      };
+      tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error);
+    });}finally{database.close();}
+    try{const remote=await window.ArcadeAccountSync?.resumeSummary(src);if(remote&&(!latest||remote.updatedAt>latest.updatedAt))latest=remote;}catch{if(!latest)throw Error('存档摘要暂不可用');}
+    return latest;
+  }
   window.addEventListener('arcade-account-data',e=>{for(const name in schema)if(schema[name].includes(e.detail.settings?.[name]))settings[name]=e.detail.settings[name];window.dispatchEvent(new CustomEvent('arcade-preferences-changed'));});
   const cacheStores=[['EmulatorJS-roms','rom'],['EmulatorJS-bios','bios'],['EmulatorJS-core','core'],['PixelArcade-core-downloads-v1','core']];
   async function cacheStore(name,store,clear){
@@ -118,6 +138,6 @@
   function resumePoints(saved){const seen=new Set(),list=[saved,...(Array.isArray(saved?.history)?saved.history:[])].filter(p=>p?.state?.byteLength).sort((a,b)=>b.updatedAt-a.updatedAt).filter(p=>{const id=p.updatedAt+':'+(p.sessionId||'');if(seen.has(id))return false;seen.add(id);return true;}).map(p=>({state:p.state,updatedAt:p.updatedAt,source:p.source||'legacy',core:p.core,src:p.src,thumbnail:p.thumbnail,sessionId:p.sessionId,reason:p.reason}));const counts=new Map();for(const p of list)counts.set(p.updatedAt,(counts.get(p.updatedAt)||0)+1);return list.map(p=>({...p,selectionKey:counts.get(p.updatedAt)>1?p.updatedAt+':'+(p.sessionId||''):String(p.updatedAt)}));}
   const resumeLabel=p=>(p.source==='manual'?'手动存档':p.source==='auto'?(p.reason==='checkpoint'?'离开前自动保存':p.reason==='periodic'?'定时自动存档':'自动存档'):'旧继续点')+' · '+new Date(p.updatedAt).toLocaleString('zh-CN');
   function resumePreview(){const figure=make('figure','','resume-preview'),image=make('img'),empty=make('span','此存档暂无画面预览','resume-preview-empty'),caption=make('figcaption');image.hidden=true;image.decoding='async';figure.append(image,empty,caption);image.onerror=()=>{image.hidden=true;empty.hidden=false;};figure.update=point=>{const valid=typeof point?.thumbnail==='string'&&point.thumbnail.length<100000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(point.thumbnail);image.hidden=!valid;empty.hidden=!!valid;if(valid){image.src=point.thumbnail;image.alt=resumeLabel(point)+'的游戏画面';}else image.removeAttribute('src');caption.textContent=point?resumeLabel(point):'选择一份存档查看画面';};figure.update(null);return figure;}
-  window.ArcadePreferences={ready,get:()=>({...settings}),update,key,gameKey,open,shaderPack,progress,resumePoints,resumeLabel,resumePreview,cacheBytes,clearCache};
+  window.ArcadePreferences={ready,get:()=>({...settings}),update,key,gameKey,open,shaderPack,progress,resumePoints,resumeLabel,resumePreview,resumeSummary,cacheBytes,clearCache};
   ready.then(()=>{cleanIfDue();window.dispatchEvent(new CustomEvent('arcade-preferences-ready'));});setInterval(cleanIfDue,60000);
 })();

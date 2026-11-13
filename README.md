@@ -4,7 +4,7 @@
 
 **让你的飞牛 NAS，变成家里的街机游戏厅。**
 
-v1.6.6：暂停时由模拟器原画布持续显示最后一帧，游戏计算保持暂停，上面只显示 3、2、1；避免绘图缓冲区被清空后出现黑屏。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，按 [更新指南](docs/update.md) 保留配置与数据。
+v1.7.0：首页新增「继续游玩」，展示最近四款游戏、存档截图与保存时间，一键继续最新进度，支持手柄操作。下载 [最新发布包](https://github.com/infinitytom/pixel-arcade-family/releases/latest)，按 [更新指南](docs/update.md) 保留配置与数据。
 
 [观看此前版本的更新演示（v1.1.2）](https://github.com/infinitytom/pixel-arcade-family/releases/download/v1.1.2/pixel-arcade-family-v1.1.2-update.mp4)
 
@@ -18,7 +18,7 @@ v1.6.6：暂停时由模拟器原画布持续显示最后一帧，游戏计算�
 
 宣传片采用实际界面录制与文字提示，配轻背景音乐，无配音和赞助码，成片、项目 ZIP 和发布说明见 Release。[验证记录](docs/verification.md)记录了已测范围和待验收项。
 
-[设置与维护](docs/settings.md)介绍声音试听、存档缩略图、历史进度恢复和缓存维护；[v1.6.2 发布说明](docs/release-v1.6.2.md)包含完整变化与升级步骤。
+[设置与维护](docs/settings.md)介绍声音试听、存档缩略图、历史进度恢复和缓存维护；[v1.7.0 发布说明](docs/release-v1.7.0.md)包含完整变化与升级步骤。
 
 ## 快速部署
 

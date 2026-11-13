@@ -114,6 +114,18 @@
       return result;
     }catch(e){if(local)try{await queueSave(id,local);}catch(queueError){report(queueError,id);}phase='同步未完成';error=e.message;notify();return local;}
   }
+  async function resumeSummary(src){
+    await ready;if(!account||!initialized||!navigator.onLine)return null;
+    const suffix=canonical('resume:fbneo:'+src).slice('resume:fbneo:'.length);
+    let latest=null;
+    for(const entry of games){
+      const match=/^resume:([^:]+):(.*)$/.exec(canonical(entry.game));
+      if(!match||match[2]!==suffix)continue;
+      const manifest=await request('saves?game='+encodeURIComponent(entry.game));
+      for(const point of manifest.points||[])if(!latest||point.updatedAt>latest.updatedAt){const duplicate=manifest.points.filter(p=>p.updatedAt===point.updatedAt).length>1;latest={...point,core:match[1],src,selectionKey:duplicate?point.updatedAt+':'+(point.sessionId||''):String(point.updatedAt)};}
+    }
+    return latest;
+  }
   async function migrateSaves(){
     // Enumerate keys first; do not materialize every game's state in memory.
     const keys=await new Promise((resolve,reject)=>{const req=indexedDB.open('PixelArcade-progress-v1');let absent=false;
@@ -141,7 +153,7 @@
   }
   const ready=initialize();
   if(enabled){const indicator=document.createElement('span');indicator.id='accountSyncIndicator';indicator.className='account-sync-indicator';indicator.setAttribute('role','status');(document.querySelector('main>header')||document.querySelector('body>header')||document.body).append(indicator);notify();}
-  window.ArcadeAccountSync={report,retry:()=>{migrationDone=false;return flush();},ready,status,canonical,localGame,enqueue,flush,mergeSaves,queueSave,
+  window.ArcadeAccountSync={report,retry:()=>{migrationDone=false;return flush();},ready,status,canonical,localGame,enqueue,flush,mergeSaves,queueSave,resumeSummary,
     favorite:(id,on)=>enqueue('favorite',id,on),recent:id=>enqueue('recent',id,Date.now()),
     settings:values=>{for(const [name,value] of Object.entries(values))enqueue('setting',name,value);},
     picture:(id,value)=>enqueue('picture',id,value)};

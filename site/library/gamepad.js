@@ -297,7 +297,7 @@
   document.addEventListener('focusin',e=>{
     if(!lobby || guide.open || performance.now()<pointerFocusUntil)return;
     const n=e.target;
-    hint.textContent=n.id==='sortControl'?'排列 · 左右切换 · A 切换 · ↑ 搜索 · ↓ 游戏 · B 返回游戏':n.closest?.('#detail')?'详情 · A 确认 · B 返回 · X 预览 · Y 收藏 · Start 开始 · 右摇杆滚动/快进':n.closest?.('#grid')?'选游戏 · A 详情 · Start 开始 · Y 收藏 · LB/RB 翻页 · X 搜索 · Select 指南':defaultHint;
+    hint.textContent=n.closest?.('#homeRecent')?'继续游玩 · A 确认 · Start 继续/开始 · LT/RT 切换分区 · X 搜索':n.id==='sortControl'?'排列 · 左右切换 · A 切换 · ↑ 搜索 · ↓ 游戏 · B 返回游戏':n.closest?.('#detail')?'详情 · A 确认 · B 返回 · X 预览 · Y 收藏 · Start 开始 · 右摇杆滚动/快进':n.closest?.('#grid')?'选游戏 · A 详情 · Start 开始 · Y 收藏 · LB/RB 翻页 · X 搜索 · Select 指南':defaultHint;
   });
 
   let keyboard;
@@ -315,13 +315,14 @@
     const detail=$('#detail');
     detail.addEventListener('close',()=>focus(returnFocus?.isConnected ? returnFocus : [...document.querySelectorAll('#grid .cover')].find(n=>n.dataset.gameId===returnFocus?.dataset.gameId) || firstGame()));
     $('#grid').addEventListener('click',e=>{const c=e.target.closest('.cover');if(c)returnFocus=c;});
+    $('#homeRecent')?.addEventListener('click',e=>{const c=e.target.closest('.recent-details');if(c)returnFocus=c;});
   }
   function editQuery(value) { $('#search').value=value; $('#padQuery').textContent=value||'（空）'; $('#search').dispatchEvent(new Event('input',{bubbles:true})); }
   function openSearch() { editQuery($('#search').value); keyboard.showModal(); focus(keyboard.querySelector('button')); }
   function section(delta) {
-    const groups=[$('#views button'), $('#chips button.selected') || $('#chips button'), $('#sortControl') || $('#sort'), firstGame(), $('#prev:not(:disabled)') || $('#next:not(:disabled)')];
+    const groups=[$('#views button'), $('#chips button.selected') || $('#chips button'), $('#sortControl') || $('#sort'), $('#homeRecent:not([hidden]) .recent-play'), firstGame(), $('#prev:not(:disabled)') || $('#next:not(:disabled)')];
     const active=document.activeElement;
-    let i=active.closest('#views')?0:active.closest('#chips')?1:/^sort(Control)?$/.test(active.id)?2:active.closest('#grid')?3:active.closest('.pagination')?4:3;
+    let i=active.closest('#views')?0:active.closest('#chips')?1:/^sort(Control)?$/.test(active.id)?2:active.closest('#homeRecent')?3:active.closest('#grid')?4:active.closest('.pagination')?5:4;
     for(let n=0;n<groups.length;n++){i=(i+delta+groups.length)%groups.length;if(visible(groups[i])){focus(groups[i]);return;}}
   }
   function act(button) {
@@ -358,6 +359,7 @@
       if ($('#detail').open) $('#save').click();
       else {const cards=[...document.querySelectorAll('#grid .cover')],i=cards.indexOf(active),fav=active.closest('.card')?.querySelector('.fav');if(fav){fav.click();focus(document.querySelectorAll('#grid .cover')[Math.max(0,i)] || firstGame());}}
     } else if (button===9) {
+      if(modal===document&&active.closest('#homeRecent .recent-card')){active.closest('.recent-card').querySelector('.recent-play').click();return;}
       if (!$('#detail').open && active.matches('#grid .cover')) active.click();
       if ($('#detail').open) $('#play').click();
     } else if (modal===document && (button===4 || button===5)) {
